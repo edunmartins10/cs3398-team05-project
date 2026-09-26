@@ -3,7 +3,6 @@
 
 ## Documentation
 
-- [Database Schema](docs/database/schema.md)
-- [Tagging System](docs/database/tags.md)
-- [Data Rules](docs/database/data-rules.md)
-- [API Documentation](docs/api/api.md)
+- [Database Schema](docs/schema.md)
+- [Tagging System](docs/tags.md)
+- [Data Rules](api.md)
