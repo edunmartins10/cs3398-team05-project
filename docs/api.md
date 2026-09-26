@@ -374,4 +374,4 @@ The API follows several principles:
 
 * [`README.md`](../README.md) — Project overview
 * [`docs/tags.md`](tags.md) — Tag vocabulary and tagging rules
-* [`docs/schema.sql`](../database/schema.sql) — Database schema
+* [`docs/schema.md`](../database/schema.md) — Database schema

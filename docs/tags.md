@@ -594,4 +594,4 @@ Tag IDs should not be used to determine the meaning, ordering, or category of a 
 
 * [`README.md`](../README.md) — Project overview
 * [`docs/api.md`](api.md) — API structure and response format
-* [`docs/schema.sql`](../database/schema.sql) — Database schema
+* [`docs/schema.mds`](../database/schema.md) — Database schema
