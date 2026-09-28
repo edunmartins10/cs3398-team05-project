@@ -5,4 +5,4 @@
 
 - [Database Schema](docs/schema.md)
 - [Tagging System](docs/tags.md)
-- [Data Rules](api.md)
+- [API Overview](docs/api.md)
