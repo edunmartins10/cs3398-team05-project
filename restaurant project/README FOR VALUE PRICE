@@ -1,0 +1,19 @@
+         CALORIES + (10 * PROTIEN)
+VALUE = ___________________________   = FORMULA FOR VALUE
+              PRICE  
+
+FORMULA:
+Since calories are mostly 3 digits, I decided to multiply protein by 10, so that calories won't dominate it. The total nutrition divided by the price gives the value of how much nutrition you can get for the lowest price. \
+This is only for the meal; it does not include the combo with a drink or side or a dessert. I might work on that a little more depending on how complicated and usable we need it to be.
+
+DATA RETRIEVE:
+To get the data from the api json url. i have to curl to the website, parse it, then sort it into the given structs. 
+
+RANKING:
+Now for the ranking  it's in descending order. so the meal with the highest value will be first, then so on. Might also use the same method for the dietary filters or make it where if a user selects a filter it'll rank them per that filter
+
+
+
+
+
+
