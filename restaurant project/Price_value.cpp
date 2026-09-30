@@ -2,6 +2,9 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+//////////// dependant  files for the curl and nlohmann
+#include "API.h"
+#include <nlohmann/json.hpp>
 
 ///////////connects to the API to retrieve the data from the restaurant and menu items.
 #include <curl/curl.h>
@@ -29,6 +32,7 @@ struct MenuItem {
     Nutrition nutrition;
     string openTime;
     string closeTime;
+    double dietaryScore;
 };
 
 struct Restaurant {
@@ -46,11 +50,9 @@ double calculateValue(const MenuItem& item) {
     return (item.nutrition.calories + (10.0 * item.nutrition.protein)) / item.price;
 }
 
-
-size_t WriteCallback(void* contents, size_t size, size_t nmenb, string* output) {
-    size_t totalSize = size *  nmenb;
-    output->append((char*)contents, totalSize);
-    return totalSize;
+///////////////function to calculate dietary score based on nutrition information.
+double calculateDietaryScore(const Nutrition& nutrition){
+    return (nutrition.protein * 10) + (nutrition.fiber * 10)  + (nutrition.carbs * 10) - (nutrition.sodium / 1000) - (nutrition.fat * 10) - nutrition.calories;
 }
 
 
@@ -74,30 +76,6 @@ string convertTo12Hour(string time24) {
     return to_string(hour) + ":" + (minute < 10 ? "0" : "") + to_string(minute) + " " + period;
 }
 
-
-string getAPIData() {
-    CURL* curl;
-    CURLcode result;
-    string response;
-
-    curl = curl_easy_init();
-
-    if(curl){
-        curl_easy_setopt(curl, CURLOPT_URL, "https://userweb.cs.txstate.edu/~zld17/api.php");
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-
-        result = curl_easy_perform(curl);
-
-        if(result != CURLE_OK) {
-            cerr << "API request failed:" << curl_easy_strerror(result) << endl;
-        }
-
-        curl_easy_cleanup(curl);
-    }
-
-    return response;
-}
 
 int main() {
     
@@ -171,6 +149,7 @@ int main() {
             meal.nutrition.fat = item["nutrition"]["fat_g"];
             meal.nutrition.fiber = item["nutrition"]["fiber_g"];
             meal.nutrition.sodium = item["nutrition"]["sodium_mg"];
+            meal. dietaryScore = calculateDietaryScore(meal.nutrition);
             //}
 
             meals.push_back(meal);
@@ -189,22 +168,48 @@ int main() {
         }
     }
 
-    //sort the meals by value score in descending order
+    ////////sort the meals by value score in descending order
     sort(meals.begin(), meals.end(), [](const MenuItem& a, const MenuItem& b) {
         return calculateValue(a) > calculateValue(b);
     });
+
+    sort(meals.begin(), meals.end(), [](const MenuItem& a, const MenuItem& b) {
+        return a.dietaryScore > b.dietaryScore;
+    });
+
+
+/////////////////choices for value score or diet score
+    int choice;
+
+    cout << "Choose an option to sort the meals:" << endl;
+    cout << "1. Sort by Value Score" << endl;
+    cout << "2. Sort by Dietary Score" << endl;
+    cin >> choice;
+
+    if(choice == 1) {
+        sort(meals.begin(), meals.end(), [](const MenuItem& a, const MenuItem& b) {
+        return calculateValue(a) > calculateValue(b);});
+    } else if (choice == 2) {
+        sort(meals.begin(), meals.end(), [](const MenuItem& a, const MenuItem& b) {
+        return a.dietaryScore > b.dietaryScore; });
+    } else {
+        cout << "invalid choice." << endl;
+    }
+
 
 
 ///////////outputs in ranks with price and value and calories and protein
     int rank = 1;
     for(const MenuItem& meal : meals) {
         double value = calculateValue(meal);
+       
 
         cout << rank << ". " << meal.name << " - " << meal.restaurantName << endl;
         cout << " Price: $" << meal.price << endl;
         cout << " Calories: " << meal.nutrition.calories << endl;
         cout << " Protein: " << meal.nutrition.protein << "g" << endl;
-        cout << " Value Score: " << value << endl; 
+        cout << " Value Score: " << value << endl;
+        cout << " Dietary Score: " << meal.dietaryScore << endl;
         if(!meal.openTime.empty() && !meal.closeTime.empty()) {
             cout << " Hours: " << meal.openTime << " - " << meal.closeTime << endl;
         }
