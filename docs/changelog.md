@@ -1,24 +1,40 @@
 # 2026-09-30
+
+## Burger King
+- Added temporary 24-hour daily hours for API demonstration purposes.
+- Hours are based on the 24-hour operating schedule of nearby Burger King locations and are not tied to a specific location.
+
+## Wendy's
+- Replaced the previous hamburger menu data with 14 corrected hamburger items.
+- Added national-median prices from Fast Food Index.
+- Added official nutrition data from Wendy's.
+- Added protein, food type, and allergen tags for all hamburger items.
+- Added restaurant-level venue, cuisine, and feature tags.
+- Added operating hours based on a nearby Wendy's location.
+
 ## Tags
-* Updated `cafe_bakery` tag classification/name.
+- Updated `cafe_bakery` tag classification/name.
 
 ## Cedar & Stone Kitchen
-* Added fictional demonstration restaurant.
-* Added 15 menu items.
-* Added restaurant-level venue, cuisine, and feature tags.
-* Added food type, protein, and other item tags.
+- Added fictional demonstration restaurant.
+- Added 15 menu items.
+- Added restaurant-level venue, cuisine, and feature tags.
+- Added food type, protein, and other item tags.
+- Added nutrition data and prices for menu items.
+- Added operating hours.
 
 ## Sunrise Junction Cafe
-* Added fictional demonstration restaurant.
-* Added 18 menu items.
-* Added restaurant-level venue, cuisine, and feature tags.
-* Added food type, protein, and other item tags.
+- Added fictional demonstration restaurant.
+- Added 18 menu items.
+- Added restaurant-level venue, cuisine, and feature tags.
+- Added food type, protein, and other item tags.
+- Added nutrition data and prices for menu items.
+- Added operating hours.
 
 ## Database Cleanup
-* Reassociated synthetic menu items with their current restaurant IDs.
-* Removed orphaned restaurant-tag relationships from deleted restaurants.
-* Verified that no orphaned menu, item-tag, or nutrition records remain.
-* Enabled foreign-key enforcement for the database connection.
+- Reassociated synthetic menu items with their current restaurant IDs.
+- Removed orphaned restaurant-tag relationships from deleted restaurants.
+- Verified that no orphaned menu, item-tag, or nutrition records remain.
 
 # 2026-09-28
 ## McDonalds
