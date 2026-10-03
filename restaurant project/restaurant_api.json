@@ -1,0 +1,48 @@
+{
+  "status": "success",
+  "server_time": "2026-09-25 20:54:04",
+  "count": 1,
+  "data": [
+    {
+      "id": 1,
+      "name": "Bistro Central",
+      "website_url": "https://example.com/bistro",
+      "is_open_now": true,
+      "today_hours": {
+        "day_of_week": 5,
+        "open_time": "08:00",
+        "close_time": "22:00",
+        "is_closed": false
+      },
+      "venue_tags": [
+        {
+          "name": "Casual Dining",
+          "tag_type": "ambiance"
+        }
+      ],
+      "menu_items": [
+        {
+          "id": 101,
+          "name": "Grilled Chicken Salad",
+          "category": "Entrees",
+          "price": 12.99,
+          "nutrition": {
+            "calories": 450,
+            "protein_g": 38.0,
+            "carbs_g": 12.5,
+            "fat_g": 14.0,
+            "fiber_g": 5.0,
+            "sodium_mg": 680.0,
+            "serving_size": "1 plate (350g)"
+          },
+          "tags": [
+            {
+              "name": "Gluten-Free",
+              "tag_type": "dietary"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
