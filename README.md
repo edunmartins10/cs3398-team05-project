@@ -10,7 +10,8 @@
 ## Running Project
 To run project, fist make sure you have npm installed.
 
-**Installing NPM**
+**Installing NPM** 
+
 If running on windows, install npm by pasting the following command in the terminal. Its best practice to reset your terminal so that environmental variables update
 ```
 winget install -e --id OpenJS.NodeJS.LTS
@@ -21,6 +22,7 @@ sudo apt update && sudo apt install -y nodejs npm
 ```
 
 **Running Project**
+
 Now just navigate to the repo in the terminal and run the following:
 ```bash
 npm install
