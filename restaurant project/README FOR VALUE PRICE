@@ -12,8 +12,9 @@ To get the data from the api json url. i have to curl to the website, parse it, 
 RANKING:
 Now for the ranking  it's in descending order. so the meal with the highest value will be first, then so on. Might also use the same method for the dietary filters or make it where if a user selects a filter it'll rank them per that filter
 
-
-
+RUN CODE:
+do this command: g++ Price_value.cpp API.cpp -o Price_value -lcurl
+then do ./Price_value
 
 
 
