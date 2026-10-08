@@ -3,8 +3,12 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
+    "start": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview"
   },

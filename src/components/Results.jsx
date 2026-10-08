@@ -1,6 +1,6 @@
 import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js';
 
-function Winner({ order, goal, budgetCents }) {
+function Winner({ order, goal, budgetCents, distance }) {
   const metric = winnerMetric(order, goal);
   return (
     <article className="winner">
@@ -9,6 +9,7 @@ function Winner({ order, goal, budgetCents }) {
         <div>
           <div className="restaurant">
             {order.restaurant} · {order.source === 'sample' ? 'Sample menu' : 'Your menu'}
+            {Number.isFinite(distance) && <span className="distance-marker">⌖ {distance.toFixed(1)} mi away</span>}
           </div>
           <h3>{order.name}</h3>
         </div>
@@ -41,7 +42,7 @@ function Winner({ order, goal, budgetCents }) {
   );
 }
 
-export default function Results({ list, goal, budgetDollars }) {
+export default function Results({ list, goal, budgetDollars, distances = {}, profile }) {
   const raw = Number(budgetDollars);
   const budgetCents = Number.isFinite(raw) ? Math.max(0, Math.round(raw * 100)) : 0;
   const rest = list.slice(1, 7);
@@ -53,16 +54,16 @@ export default function Results({ list, goal, budgetDollars }) {
           <div className="section-number">02 / THE SHORTLIST</div>
           <h2>Your money’s worth</h2>
         </div>
-        <span>{list.length} matching orders</span>
+          <span>{list.length} matching orders{profile?.limitRecommendations ? ` · within ${profile.radiusMiles === 'infinity' ? 'any distance' : `${profile.radiusMiles} mi`}` : ''}</span>
       </div>
       <div aria-live="polite">
         {!list.length ? (
           <div className="empty">
             <h3>No orders fit just yet.</h3>
-            <p>Try a higher budget, a lower calorie minimum, or select another restaurant.</p>
+            <p>{profile?.limitRecommendations ? 'Try a wider recommendation distance, or turn off distance limits in Account settings.' : 'Try a higher budget, a lower calorie minimum, or select another restaurant.'}</p>
           </div>
         ) : (
-          <Winner order={list[0]} goal={goal} budgetCents={budgetCents} />
+          <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} />
         )}
       </div>
       {list.length > 0 && (
@@ -78,6 +79,7 @@ export default function Results({ list, goal, budgetDollars }) {
                 <div>
                   <div className="restaurant">
                     {x.restaurant} · {x.source === 'sample' ? 'Sample' : 'Your menu'}
+                    {Number.isFinite(distances[x.restaurant]) && <span className="distance-marker">⌖ {distances[x.restaurant].toFixed(1)} mi away</span>}
                   </div>
                   <h3>{x.name}</h3>
                   <div className="stats">
@@ -95,6 +97,7 @@ export default function Results({ list, goal, budgetDollars }) {
               </p>
             )}
           </div>
+          {profile?.limitRecommendations && <p className="fine distance-footnote">Distance markers are approximate straight-line estimates from the center of your ZIP code. Sample restaurant locations are illustrative.</p>}
         </>
       )}
       <details className="method">

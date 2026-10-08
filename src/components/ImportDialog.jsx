@@ -20,7 +20,7 @@ export default function ImportDialog({ open, onClose, onSubmit, error }) {
         onSubmit={(e) => {
           e.preventDefault();
           const form = e.currentTarget;
-          onSubmit(form.restaurantName.value, form.menuText.value);
+          onSubmit(form.restaurantName.value, form.menuText.value, form.restaurantZip.value);
         }}
       >
         <div className="dialoghead">
@@ -38,6 +38,8 @@ export default function ImportDialog({ open, onClose, onSubmit, error }) {
         </p>
         <label htmlFor="restaurantName">Restaurant name</label>
         <input id="restaurantName" name="restaurantName" maxLength={60} required placeholder="e.g. Campus Grill" />
+        <label htmlFor="restaurantZip">Restaurant ZIP code <span className="optional">optional, used for distance estimates</span></label>
+        <input id="restaurantZip" name="restaurantZip" inputMode="numeric" pattern="\d{5}" maxLength={5} placeholder="e.g. 78666" />
         <label htmlFor="menuText">One item per line: name | price | calories | protein (g)</label>
         <textarea
           id="menuText"
