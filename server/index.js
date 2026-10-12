@@ -297,6 +297,9 @@ async function sendOptInText(phone, username) {
 
 async function handleApi(request, response, url) {
   const { pathname } = url;
+  if (request.method === 'GET' && pathname === '/api/health') {
+    return sendJson(response, 200, { status: 'ready' });
+  }
   if (request.method === 'GET' && pathname === '/api/restaurants') {
     return sendJson(response, 200, await getRestaurantCatalog());
   }
