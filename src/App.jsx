@@ -7,20 +7,25 @@ import ImportDialog from './components/ImportDialog.jsx';
 import AuthDialog from './components/AuthDialog.jsx';
 import AccountDialog from './components/AccountDialog.jsx';
 import DonationDialog from './components/DonationDialog.jsx';
-import { createSampleMenu } from './data/sampleMenu.js';
-import { parseMenu, rankedOrders, restaurantNames } from './lib/value.js';
+import { parseMenu, restaurantNames } from './lib/value.js';
 import { api, postJson, putJson } from './lib/api.js';
-import { distanceMiles, radiusLimit, restaurantLocations } from './lib/location.js';
+import { distanceMiles, radiusLimit } from './lib/location.js';
 
 const DEFAULTS = { budget: '10', goal: 'balanced', minimum: '400', combos: true };
 
 export default function App() {
-  const [menu, setMenu] = useState(createSampleMenu);
-  const [selected, setSelected] = useState(() => new Set(createSampleMenu().map((x) => x.restaurant)));
+  const [menu, setMenu] = useState([]);
+  const [selected, setSelected] = useState(() => new Set());
   const [budget, setBudget] = useState(DEFAULTS.budget);
   const [goal, setGoal] = useState(DEFAULTS.goal);
   const [minimum, setMinimum] = useState(DEFAULTS.minimum);
   const [combos, setCombos] = useState(DEFAULTS.combos);
+  const [catalogStatus, setCatalogStatus] = useState('loading');
+  const [catalogInfo, setCatalogInfo] = useState(null);
+  const [catalogError, setCatalogError] = useState('');
+  const [ranked, setRanked] = useState({ orders: [], totalCount: 0 });
+  const [rankingStatus, setRankingStatus] = useState('idle');
+  const [rankingError, setRankingError] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
@@ -38,22 +43,22 @@ export default function App() {
   }, [menu]);
   const distanceByRestaurant = useMemo(() => Object.fromEntries(names.map((name) => {
     const itemLocation = menu.find((item) => item.restaurant === name && Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
-    const location = itemLocation || restaurantLocations[name];
-    const distance = profile && location ? distanceMiles({ latitude: profile.latitude, longitude: profile.longitude }, location) : null;
+    const distance = profile && itemLocation
+      ? distanceMiles({ latitude: profile.latitude, longitude: profile.longitude }, itemLocation)
+      : null;
     return [name, distance];
   })), [names, menu, profile]);
+  const hasMenuLocations = menu.some((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
+  const hasUnlocatedRestaurants = menu.some((item) => !Number.isFinite(item.latitude) || !Number.isFinite(item.longitude));
   const visibleMenu = useMemo(() => {
     const limit = radiusLimit(profile);
-    if (!profile || !profile.limitRecommendations || !profile.latitude || !profile.longitude) return menu;
+    if (!profile || !profile.limitRecommendations || !profile.latitude || !profile.longitude || !hasMenuLocations) return menu;
     return menu.filter((item) => {
+      if (!Number.isFinite(item.latitude) || !Number.isFinite(item.longitude)) return true;
       const distance = distanceByRestaurant[item.restaurant];
       return distance !== null && distance <= limit;
     });
-  }, [menu, profile, distanceByRestaurant]);
-  const list = useMemo(
-    () => rankedOrders(visibleMenu, selected, budget, minimum, combos, goal),
-    [visibleMenu, selected, budget, minimum, combos, goal],
-  );
+  }, [menu, profile, distanceByRestaurant, hasMenuLocations]);
 
   useEffect(() => {
     api('/api/auth/me').then((data) => setProfile(data.profile || null)).catch(() => setProfile(null));
@@ -86,6 +91,54 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    api('/api/restaurants')
+      .then((data) => {
+        if (cancelled) return;
+        setMenu((previous) => data.items.concat(previous.filter((item) => item.source === 'custom')));
+        setSelected((previous) => new Set([...restaurantNames(data.items), ...previous]));
+        setCatalogInfo(data);
+        setCatalogStatus('ready');
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setCatalogError(error.message);
+        setCatalogStatus('error');
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (catalogStatus !== 'ready') return undefined;
+    const controller = new AbortController();
+    const visibleNames = new Set(visibleMenu.map((item) => item.restaurant));
+    setRankingStatus('loading');
+    setRankingError('');
+    api('/api/rank', {
+      method: 'POST',
+      signal: controller.signal,
+      body: JSON.stringify({
+        budgetCents: Math.max(0, Math.round((Number(budget) || 0) * 100)),
+        minimumCalories: Number(minimum) || 0,
+        combos,
+        goal,
+        selectedRestaurants: [...selected].filter((name) => visibleNames.has(name)),
+        customItems: visibleMenu.filter((item) => item.source === 'custom'),
+      }),
+    })
+      .then((data) => {
+        setRanked(data);
+        setRankingStatus('ready');
+      })
+      .catch((error) => {
+        if (error.name === 'AbortError') return;
+        setRankingError(error.message);
+        setRankingStatus('error');
+      });
+    return () => controller.abort();
+  }, [catalogStatus, visibleMenu, selected, budget, minimum, combos, goal]);
+
   function toggleRestaurant(name, checked) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -112,8 +165,11 @@ export default function App() {
         const geo = await api(`/api/geo/${encodeURIComponent(restaurantZip.trim())}`);
         location = { latitude: geo.latitude, longitude: geo.longitude, locationLabel: geo.label };
       }
-      const start = menu.length ? Math.max(...menu.map((x) => x.id)) + 1 : 0;
-      const custom = parseMenu(menuText, name, start).map((item) => ({ ...item, ...location }));
+      const custom = parseMenu(menuText, name, 0).map((item, index) => ({
+        ...item,
+        id: `custom-${Date.now()}-${index}`,
+        ...location,
+      }));
       const nextMenu = menu.filter((x) => x.restaurant !== name).concat(custom);
       setMenu(nextMenu);
       setSelected(new Set([name]));
@@ -164,10 +220,17 @@ export default function App() {
         {!profile && <div className="account-prompt"><strong>Make Bitewise yours.</strong><span>Create an account to save your ZIP code, manage travel distance, and opt in to text updates.</span><button type="button" onClick={() => setAuthOpen(true)}>Create account</button></div>}
         {notice && <div className={`notice ${noticeError ? 'notice-error' : ''}`} role="status"><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="Dismiss">×</button></div>}
         <div className="demo">
-          <strong>Sample menu mode</strong>
-          <span>Illustrative prices and nutrition, not current restaurant offers. Distances are approximate sample locations. Add your own menu for a real comparison.</span>
+          <strong>{catalogStatus === 'loading' ? 'Loading restaurant data' : 'Restaurant database'}</strong>
+          <span>
+            {catalogStatus === 'error'
+              ? `Restaurant menu data could not be loaded: ${catalogError}`
+              : catalogStatus === 'loading'
+                ? 'Fetching restaurant menus and nutrition from the connected database API.'
+                : `${catalogInfo.restaurantCount} restaurants loaded from the database API. Rankings are calculated by Price_value.cpp.${catalogInfo.skippedItemCount ? ` ${catalogInfo.skippedItemCount} items without usable price and nutrition data were excluded.` : ''}`}
+          </span>
         </div>
         {profile?.limitRecommendations && !profile.latitude && <div className="notice notice-error">We couldn’t look up that ZIP code, so distance filtering is paused. Update your ZIP in Account settings.</div>}
+        {profile?.limitRecommendations && profile.latitude && hasUnlocatedRestaurants && <div className="notice">Some restaurant records do not include coordinates, so the distance limit cannot be applied to those restaurants.</div>}
         <div className="workspace">
           <Filters
             budget={budget} onBudgetChange={setBudget} goal={goal} onGoalChange={setGoal}
@@ -175,7 +238,17 @@ export default function App() {
             selected={selected} onToggleRestaurant={toggleRestaurant} combos={combos}
             onCombosChange={setCombos} onReset={resetFilters}
           />
-          <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} />
+          <Results
+            list={ranked.orders}
+            totalCount={ranked.totalCount}
+            loading={catalogStatus === 'loading' || rankingStatus === 'loading'}
+            error={catalogStatus === 'error' ? catalogError : rankingStatus === 'error' ? rankingError : ''}
+            goal={goal}
+            budgetDollars={budget}
+            distances={distanceByRestaurant}
+            profile={profile}
+            distanceFilteringAvailable={hasMenuLocations}
+          />
         </div>
         <footer>
           <span className="brand footerbrand">bitewise.</span>

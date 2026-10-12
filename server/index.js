@@ -4,14 +4,19 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
+import { spawn, execFile as execFileCallback } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const scrypt = promisify(scryptCallback);
+const execFile = promisify(execFileCallback);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 try { process.loadEnvFile(path.join(root, '.env')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const dataDirectory = process.env.BITEWISE_DATA_DIR || path.join(root, 'data');
 const databasePath = path.join(dataDirectory, 'accounts.json');
+const restaurantApiUrl = process.env.RESTAURANT_API_URL || 'https://userweb.cs.txstate.edu/~zld17/api.php';
+const priceValueSource = path.join(root, 'restaurant project', 'Price_value.cpp');
+const priceValueRunner = path.join(root, 'node_modules', '.cache', 'bitewise-price-value');
 const production = process.env.NODE_ENV === 'production';
 const cookieName = 'bitewise_session';
 const sessionDays = 14;
@@ -26,6 +31,107 @@ const knownZipCenters = {
 const allowedRadii = new Set(['5', '10', '15', '20', 'infinity']);
 const rateBuckets = new Map();
 let database = { users: [], sessions: [] };
+let restaurantCatalogCache;
+let restaurantCatalogCacheExpiresAt = 0;
+let restaurantCatalogRequest;
+
+async function buildPriceValueRunner() {
+  await mkdir(path.dirname(priceValueRunner), { recursive: true });
+  await execFile('g++', [
+    '-std=c++17', '-O2', '-DBITEWISE_JSON_RANKER', priceValueSource, '-o', priceValueRunner,
+  ], { timeout: 120_000 });
+}
+
+function runPriceValue(input) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(priceValueRunner, [], { stdio: ['pipe', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.once('error', reject);
+    child.stdin.once('error', reject);
+    child.once('close', (code) => {
+      if (code !== 0) return reject(new Error(stderr.trim() || `Price_value.cpp exited with status ${code}.`));
+      try { resolve(JSON.parse(stdout)); }
+      catch (error) { reject(new Error(`Price_value.cpp returned invalid JSON: ${error.message}`)); }
+    });
+    child.stdin.end(JSON.stringify(input));
+  });
+}
+
+async function getRestaurantCatalog() {
+  if (restaurantCatalogCache && Date.now() < restaurantCatalogCacheExpiresAt) return restaurantCatalogCache;
+  if (restaurantCatalogRequest) return restaurantCatalogRequest;
+
+  restaurantCatalogRequest = (async () => {
+    let response;
+    try {
+      response = await fetch(restaurantApiUrl, { signal: AbortSignal.timeout(10_000) });
+    } catch {
+      throw Object.assign(new Error('Restaurant data could not be reached. Please try again shortly.'), { status: 502 });
+    }
+    if (!response.ok) {
+      throw Object.assign(new Error(`Restaurant data service returned HTTP ${response.status}.`), { status: 502 });
+    }
+
+    let payload;
+    try { payload = await response.json(); }
+    catch { throw Object.assign(new Error('Restaurant data service returned invalid JSON.'), { status: 502 }); }
+    if (payload.status !== 'success' || !Array.isArray(payload.data)) {
+      throw Object.assign(new Error('Restaurant data service returned an unexpected response.'), { status: 502 });
+    }
+
+    const items = [];
+    let skippedItemCount = 0;
+    for (const restaurant of payload.data) {
+      if (!restaurant || typeof restaurant.name !== 'string' || !Array.isArray(restaurant.menu_items)) continue;
+      for (const item of restaurant.menu_items) {
+        if (!item || typeof item !== 'object') {
+          skippedItemCount += 1;
+          continue;
+        }
+        const price = Number(item.price);
+        const calories = Number(item.nutrition?.calories);
+        const protein = Number(item.nutrition?.protein_g);
+        if (!item.name || !Number.isFinite(price) || price <= 0
+          || !Number.isFinite(calories) || !Number.isFinite(protein) || calories < 0 || protein < 0) {
+          skippedItemCount += 1;
+          continue;
+        }
+        const latitude = Number(restaurant.latitude);
+        const longitude = Number(restaurant.longitude);
+        items.push({
+          id: `database-${restaurant.id}-${item.id}`,
+          restaurant: restaurant.name,
+          name: item.name,
+          price: Math.round(price * 100),
+          calories,
+          protein,
+          carbs: Number(item.nutrition?.carbs_g) || 0,
+          fat: Number(item.nutrition?.fat_g) || 0,
+          fiber: Number(item.nutrition?.fiber_g) || 0,
+          sodium: Number(item.nutrition?.sodium_mg) || 0,
+          source: 'database',
+          ...(Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : {}),
+        });
+      }
+    }
+
+    restaurantCatalogCache = {
+      items,
+      restaurantCount: payload.data.length,
+      skippedItemCount,
+      serverTime: payload.server_time || null,
+    };
+    restaurantCatalogCacheExpiresAt = Date.now() + 60_000;
+    return restaurantCatalogCache;
+  })();
+  try { return await restaurantCatalogRequest; }
+  finally { restaurantCatalogRequest = undefined; }
+}
 
 async function loadDatabase() {
   await mkdir(dataDirectory, { recursive: true, mode: 0o700 });
@@ -84,11 +190,11 @@ function sendJson(response, status, data, headers = {}) {
   response.end(JSON.stringify(data));
 }
 
-async function readJson(request) {
+async function readJson(request, maxLength = 16_384) {
   let body = '';
   for await (const chunk of request) {
     body += chunk;
-    if (body.length > 16_384) throw Object.assign(new Error('Request is too large.'), { status: 413 });
+    if (body.length > maxLength) throw Object.assign(new Error('Request is too large.'), { status: 413 });
   }
   if (!body) return {};
   try { return JSON.parse(body); }
@@ -191,6 +297,66 @@ async function sendOptInText(phone, username) {
 
 async function handleApi(request, response, url) {
   const { pathname } = url;
+  if (request.method === 'GET' && pathname === '/api/restaurants') {
+    return sendJson(response, 200, await getRestaurantCatalog());
+  }
+  if (request.method === 'POST' && pathname === '/api/rank') {
+    const data = await readJson(request, 1_000_000);
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return sendJson(response, 400, { error: 'Ranking filters or menu items are invalid.' });
+    }
+    const goals = new Set(['balanced', 'protein', 'calories', 'price']);
+    const budgetCents = Number(data.budgetCents);
+    const minimumCalories = Number(data.minimumCalories);
+    if (!Number.isSafeInteger(budgetCents) || budgetCents < 0 || budgetCents > 100_000_000
+      || !Number.isFinite(minimumCalories) || minimumCalories < 0 || minimumCalories > 10_000
+      || !goals.has(data.goal) || typeof data.combos !== 'boolean'
+      || !Array.isArray(data.selectedRestaurants) || data.selectedRestaurants.length > 100
+      || data.selectedRestaurants.some((name) => typeof name !== 'string' || name.length > 100)
+      || !Array.isArray(data.customItems) || data.customItems.length > 500) {
+      return sendJson(response, 400, { error: 'Ranking filters or menu items are invalid.' });
+    }
+
+    const customItems = [];
+    for (const item of data.customItems) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return sendJson(response, 400, { error: 'A custom menu item is invalid.' });
+      }
+      const price = Number(item.price);
+      const calories = Number(item.calories);
+      const protein = Number(item.protein);
+      if (typeof item.restaurant !== 'string' || !item.restaurant.trim() || item.restaurant.length > 60
+        || typeof item.name !== 'string' || !item.name.trim() || item.name.length > 150
+        || !Number.isSafeInteger(price) || price <= 0 || price > 100_000
+        || !Number.isFinite(calories) || calories < 0 || calories > 10_000
+        || !Number.isFinite(protein) || protein < 0 || protein > 1_000) {
+        return sendJson(response, 400, { error: 'A custom menu item is invalid.' });
+      }
+      customItems.push({
+        id: String(item.id),
+        restaurant: item.restaurant.trim(),
+        name: item.name.trim(),
+        price,
+        calories,
+        protein,
+        source: 'custom',
+      });
+    }
+
+    const catalog = await getRestaurantCatalog();
+    const customRestaurants = new Set(customItems.map((item) => item.restaurant));
+    const items = catalog.items.filter((item) => !customRestaurants.has(item.restaurant)).concat(customItems);
+    const selectedRestaurants = data.selectedRestaurants.filter((name) => typeof name === 'string');
+    const result = await runPriceValue({
+      items,
+      budgetCents,
+      minimumCalories,
+      combos: data.combos,
+      goal: data.goal,
+      selectedRestaurants,
+    });
+    return sendJson(response, 200, result);
+  }
   if (request.method === 'GET' && pathname === '/api/auth/me') {
     const user = authenticate(request);
     return sendJson(response, 200, { profile: user ? publicProfile(user) : null });
@@ -335,5 +501,6 @@ const server = createServer(async (request, response) => {
 });
 
 await loadDatabase();
+await buildPriceValueRunner();
 const port = Number(process.env.API_PORT || process.env.PORT || 3001);
 server.listen(port, () => console.info(`Bitewise account API listening on http://localhost:${port}`));

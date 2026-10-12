@@ -9,10 +9,16 @@ The API exposes restaurant information, operating hours, normalized restaurant t
 # Endpoint
 
 ```text
-https://userweb.cs.txstate.edu/~zld17/
+https://userweb.cs.txstate.edu/~zld17/api.php
 ```
 
 The API returns JSON responses.
+
+The Bitewise web app retrieves this API through its local backend at
+`GET /api/restaurants`. The backend normalizes prices and nutrition for the
+React client. `POST /api/rank` combines those database items with any pasted
+menu and delegates filtering and ranking to `restaurant project/Price_value.cpp`.
+Set `RESTAURANT_API_URL` on the backend to use a different compatible API URL.
 
 A successful response has the following general structure:
 

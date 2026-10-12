@@ -1,3 +1,143 @@
+#ifdef BITEWISE_JSON_RANKER
+
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
+struct RankedOrder {
+    json result;
+    double score;
+    long long priceCents;
+    std::string name;
+};
+
+double calculateValue(double calories, double protein, double price) {
+    return (calories + (10.0 * protein)) / price;
+}
+
+double calculateDietaryScore(const json& item) {
+    const auto number = [&item](const char* key) {
+        return item.contains(key) && item[key].is_number() ? item[key].get<double>() : 0.0;
+    };
+    return (number("protein") * 10) + (number("fiber") * 10) + (number("carbs") * 10)
+        - (number("sodium") / 1000) - (number("fat") * 10) - number("calories");
+}
+
+int main() {
+    try {
+        json request;
+        std::cin >> request;
+        if (!request.is_object() || !request.contains("items") || !request["items"].is_array()) {
+            throw std::runtime_error("Ranking input must include an items array.");
+        }
+
+        const auto budgetCents = request.at("budgetCents").get<long long>();
+        const auto minimumCalories = request.at("minimumCalories").get<double>();
+        const auto combos = request.at("combos").get<bool>();
+        const auto goal = request.at("goal").get<std::string>();
+        const auto selected = request.at("selectedRestaurants").get<std::vector<std::string>>();
+        const auto isSelected = [&selected](const std::string& restaurant) {
+            return std::find(selected.begin(), selected.end(), restaurant) != selected.end();
+        };
+
+        std::vector<json> eligibleItems;
+        for (const auto& item : request["items"]) {
+            if (!item.is_object() || !item.contains("id") || !item.contains("restaurant")
+                || !item.contains("name") || !item.contains("price") || !item.contains("calories")
+                || !item.contains("protein")) {
+                continue;
+            }
+            if (!item["restaurant"].is_string() || !item["name"].is_string()
+                || !item["price"].is_number_integer() || !item["calories"].is_number()
+                || !item["protein"].is_number()) {
+                continue;
+            }
+            if (item["price"].get<long long>() <= 0 || !isSelected(item["restaurant"].get<std::string>())) {
+                continue;
+            }
+            eligibleItems.push_back(item);
+        }
+
+        std::vector<RankedOrder> orders;
+        const auto addOrder = [&](const json& first, const json* second) {
+            const auto priceCents = first["price"].get<long long>()
+                + (second ? (*second)["price"].get<long long>() : 0);
+            const auto calories = first["calories"].get<double>()
+                + (second ? (*second)["calories"].get<double>() : 0.0);
+            const auto protein = first["protein"].get<double>()
+                + (second ? (*second)["protein"].get<double>() : 0.0);
+            if (priceCents > budgetCents || calories < minimumCalories) return;
+
+            const auto priceDollars = priceCents / 100.0;
+            const auto caloriesPerDollar = calories / priceDollars;
+            const auto proteinPerDollar = protein / priceDollars;
+            const auto valueScore = calculateValue(calories, protein, priceDollars);
+            auto name = first["name"].get<std::string>();
+            if (second) {
+                name = first["id"] == (*second)["id"]
+                    ? "2 x " + name
+                    : name + " + " + (*second)["name"].get<std::string>();
+            }
+
+            double score = valueScore;
+            if (goal == "price") score = -static_cast<double>(priceCents);
+            else if (goal == "protein") score = proteinPerDollar;
+            else if (goal == "calories") score = caloriesPerDollar;
+
+            json result = {
+                {"restaurant", first["restaurant"]},
+                {"name", name},
+                {"price", priceCents},
+                {"calories", calories},
+                {"protein", protein},
+                {"source", first.value("source", std::string("database"))},
+                {"cpd", caloriesPerDollar},
+                {"ppd", proteinPerDollar},
+                {"valueScore", valueScore},
+                {"dietaryScore", calculateDietaryScore(first)},
+                {"score", score}
+            };
+            orders.push_back({std::move(result), score, priceCents, name});
+        };
+
+        for (std::size_t i = 0; i < eligibleItems.size(); ++i) {
+            const auto& first = eligibleItems[i];
+            addOrder(first, nullptr);
+            if (!combos) continue;
+            for (std::size_t j = i; j < eligibleItems.size(); ++j) {
+                const auto& second = eligibleItems[j];
+                if (first["restaurant"] == second["restaurant"]) addOrder(first, &second);
+            }
+        }
+
+        const auto orderByScore = [](const RankedOrder& left, const RankedOrder& right) {
+            if (left.score != right.score) return left.score > right.score;
+            if (left.priceCents != right.priceCents) return left.priceCents < right.priceCents;
+            return left.name < right.name;
+        };
+        const auto totalCount = orders.size();
+        const auto outputCount = std::min<std::size_t>(7, totalCount);
+        std::partial_sort(orders.begin(), orders.begin() + outputCount, orders.end(), orderByScore);
+
+        json output = {{"totalCount", totalCount}, {"orders", json::array()}};
+        for (std::size_t i = 0; i < outputCount; ++i) output["orders"].push_back(orders[i].result);
+        std::cout << output.dump();
+        return 0;
+    } catch (const std::exception& error) {
+        std::cerr << error.what() << '\n';
+        return 1;
+    }
+}
+
+#else
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -222,3 +362,5 @@ int main() {
 
     return 0;
 }
+
+#endif

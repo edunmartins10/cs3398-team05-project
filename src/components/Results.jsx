@@ -2,13 +2,14 @@ import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js'
 
 function Winner({ order, goal, budgetCents, distance }) {
   const metric = winnerMetric(order, goal);
+  const sourceLabel = order.source === 'database' ? 'Restaurant database' : 'Your menu';
   return (
     <article className="winner">
       <span className="badge">✦ {WINNER_LABELS[goal]}</span>
       <div className="winner-top">
         <div>
           <div className="restaurant">
-            {order.restaurant} · {order.source === 'sample' ? 'Sample menu' : 'Your menu'}
+            {order.restaurant} · {sourceLabel}
             {Number.isFinite(distance) && <span className="distance-marker">⌖ {distance.toFixed(1)} mi away</span>}
           </div>
           <h3>{order.name}</h3>
@@ -34,15 +35,25 @@ function Winner({ order, goal, budgetCents, distance }) {
       </div>
       <p className="winner-note">
         {Math.round(order.cpd)} calories and {order.ppd.toFixed(1)}g protein for every dollar.{' '}
-        {order.source === 'sample'
-          ? 'Check local menu prices before ordering.'
+        {order.source === 'database'
+          ? 'Based on the price and nutrition data returned by the restaurant database.'
           : 'Based on the prices and nutrition you entered.'}
       </p>
     </article>
   );
 }
 
-export default function Results({ list, goal, budgetDollars, distances = {}, profile }) {
+export default function Results({
+  list,
+  totalCount,
+  loading,
+  error,
+  goal,
+  budgetDollars,
+  distances = {},
+  profile,
+  distanceFilteringAvailable,
+}) {
   const raw = Number(budgetDollars);
   const budgetCents = Number.isFinite(raw) ? Math.max(0, Math.round(raw * 100)) : 0;
   const rest = list.slice(1, 7);
@@ -54,19 +65,32 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
           <div className="section-number">02 / THE SHORTLIST</div>
           <h2>Your money’s worth</h2>
         </div>
-          <span>{list.length} matching orders{profile?.limitRecommendations ? ` · within ${profile.radiusMiles === 'infinity' ? 'any distance' : `${profile.radiusMiles} mi`}` : ''}</span>
+          <span>
+            {totalCount} matching orders
+            {profile?.limitRecommendations && ` · ${
+              profile.radiusMiles === 'infinity'
+                ? 'any distance'
+                : distanceFilteringAvailable
+                  ? `up to ${profile.radiusMiles} mi where coordinates are available`
+                  : 'distance limit unavailable'
+            }`}
+          </span>
       </div>
       <div aria-live="polite">
-        {!list.length ? (
+        {loading ? (
+          <div className="empty"><p>Updating results with the current menu and filters…</p></div>
+        ) : error ? (
+          <div className="empty" role="alert"><h3>Results are unavailable.</h3><p>{error}</p></div>
+        ) : !list.length ? (
           <div className="empty">
             <h3>No orders fit just yet.</h3>
-            <p>{profile?.limitRecommendations ? 'Try a wider recommendation distance, or turn off distance limits in Account settings.' : 'Try a higher budget, a lower calorie minimum, or select another restaurant.'}</p>
+            <p>{profile?.limitRecommendations && distanceFilteringAvailable ? 'Try a wider recommendation distance, or turn off distance limits in Account settings.' : 'Try a higher budget, a lower calorie minimum, or select another restaurant.'}</p>
           </div>
         ) : (
           <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} />
         )}
       </div>
-      {list.length > 0 && (
+      {!loading && !error && list.length > 0 && (
         <>
           <div className="list-head">
             <h3>Compare your options</h3>
@@ -78,7 +102,7 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
                 <span className="rank">{String(i + 2).padStart(2, '0')}</span>
                 <div>
                   <div className="restaurant">
-                    {x.restaurant} · {x.source === 'sample' ? 'Sample' : 'Your menu'}
+                    {x.restaurant} · {x.source === 'database' ? 'Restaurant database' : 'Your menu'}
                     {Number.isFinite(distances[x.restaurant]) && <span className="distance-marker">⌖ {distances[x.restaurant].toFixed(1)} mi away</span>}
                   </div>
                   <h3>{x.name}</h3>
@@ -91,25 +115,25 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
                 <div className="price">{money(x.price)}</div>
               </article>
             ))}
-            {list.length > 7 && (
+            {totalCount > list.length && (
               <p className="fine">
-                Showing the top 7 of {list.length} matching orders. Adjust your filters to explore more.
+                Showing the top {list.length} of {totalCount} matching orders. Adjust your filters to explore more.
               </p>
             )}
           </div>
-          {profile?.limitRecommendations && <p className="fine distance-footnote">Distance markers are approximate straight-line estimates from the center of your ZIP code. Sample restaurant locations are illustrative.</p>}
+          {profile?.limitRecommendations && <p className="fine distance-footnote">Distance markers are approximate straight-line estimates from the center of your ZIP code. The distance limit can only be applied when restaurant coordinates are available.</p>}
         </>
       )}
       <details className="method">
         <summary>How do we measure “value”?</summary>
         <p>
-          Balanced value gives equal weight to calories per dollar and protein per dollar, normalized against the best
-          eligible order in each category. Protein and calorie modes rank their respective ratios; lowest-price mode
-          ranks total cost. Combinations contain at most two menu items from one restaurant, with repeats allowed.
+          Balanced value uses the Price_value.cpp formula: (calories + 10 × protein grams) ÷ price in dollars.
+          Protein and calorie modes rank their respective per-dollar ratios; lowest-price mode ranks total cost.
+          Combinations contain at most two menu items from one restaurant, with repeats allowed.
         </p>
         <p>
           Calories are an energy measure, not a measure of portion size, taste, or health. Scores compare only the menu
-          items in this tool. Sample nutrition values are illustrative.
+          items returned by the restaurant data service and any menu you enter.
         </p>
       </details>
     </section>
