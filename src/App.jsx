@@ -8,6 +8,7 @@ import AuthDialog from './components/AuthDialog.jsx';
 import AccountDialog from './components/AccountDialog.jsx';
 import DonationDialog from './components/DonationDialog.jsx';
 import OrderDialog from './components/OrderDialog.jsx';
+import RecWidget from './components/RecWidget.jsx';
 import { createSampleMenu } from './data/sampleMenu.js';
 import { parseMenu, rankedOrders, restaurantNames } from './lib/value.js';
 import { api, postJson, putJson } from './lib/api.js';
@@ -198,6 +199,7 @@ export default function App() {
       {profile && <AccountDialog open={accountOpen} onClose={() => setAccountOpen(false)} profile={profile} onSave={saveProfile} onSignOut={signOut} />}
       <DonationDialog open={donationOpen} onClose={() => setDonationOpen(false)} onError={(message) => { setNotice(message); setNoticeError(true); }} />
       <OrderDialog item={orderItem} onConfirm={confirmOrder} onClose={() => setOrderItem(null)} />
+      <RecWidget order={list[0]} goal={goal} />
     </>
   );
 }
