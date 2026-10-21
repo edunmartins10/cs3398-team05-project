@@ -56,7 +56,7 @@ export default function AccountPage() {
   function Profile() {
     return (
         <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-[#172b25] font-['Space_Grotesk']">Public Profile</h2>
+                  <h2 className="text-lg font-semibold text-[#172b25]">Public Profile</h2>
                   <div>
                     <label className="block text-xs font-bold text-[#63726c] uppercase tracking-wider mb-1">
                       Full Name / Username
@@ -100,7 +100,7 @@ export default function AccountPage() {
   function Security(){
     return(
         <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-[#172b25] font-['Space_Grotesk']">Security Settings</h2>
+                  <h2 className="text-lg font-semibold text-[#172b25]">Security Settings</h2>
                   <div>
                     <label className="block text-xs font-bold text-[#63726c] uppercase tracking-wider mb-1">
                       Current Password
@@ -139,17 +139,48 @@ export default function AccountPage() {
 
   function OrderHistory(){
 
+	  return(
+		  <div className="animate-pulse flex items-center space-x-4">
+    <div className="rounded-full bg-gray-300 h-10 w-10"></div>
+    <div className="space-y-2">
+      <div className="h-4 bg-gray-300 rounded w-24"></div>
+      <div className="h-3 bg-gray-200 rounded w-16"></div>
+    </div>
+  </div>
+	  ) 
+
   }
 
   function SavedOrders(){
+	  <div className="animate-pulse flex items-center space-x-4">
+    <div className="rounded-full bg-gray-300 h-10 w-10"></div>
+    <div className="space-y-2">
+      <div className="h-4 bg-gray-300 rounded w-24"></div>
+      <div className="h-3 bg-gray-200 rounded w-16"></div>
+    </div>
+  </div>
 
   }
 
   function Preferences(){
+	  <div className="animate-pulse flex items-center space-x-4">
+    <div className="rounded-full bg-gray-300 h-10 w-10"></div>
+    <div className="space-y-2">
+      <div className="h-4 bg-gray-300 rounded w-24"></div>
+      <div className="h-3 bg-gray-200 rounded w-16"></div>
+    </div>
+  </div>
 
   }
 
   function AddressAndPhone(){
+	  <div className="animate-pulse flex items-center space-x-4">
+    <div className="rounded-full bg-gray-300 h-10 w-10"></div>
+    <div className="space-y-2">
+      <div className="h-4 bg-gray-300 rounded w-24"></div>
+      <div className="h-3 bg-gray-200 rounded w-16"></div>
+    </div>
+  </div>
 
   }
 
@@ -193,7 +224,7 @@ export default function AccountPage() {
       />
 
       <main className="max-w-[1320px] px-[46px] pt-[34px] mx-auto">
-        <div className="border-b border-[#dfe5df] pb-6 mb-8">
+        <div className="border-b border-[#dfe5df] pt-6 mb-8">
           <h1 className="text-[36px] font-bold tracking-tight text-[#172b25] font-['Space_Grotesk']">
             Account Settings
           </h1>
@@ -211,15 +242,15 @@ export default function AccountPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-9 mb-12 h-full">
           {/* Sidebar */}
-          <nav className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-1 overflow-x-auto pb-2 md:pb-0 bg-white border border-[#dfe5df] rounded-[16px] p-6 h-fit">
+          <nav className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-1 overflow-x-auto pb-4 md:pb-0 bg-white border border-[#dfe5df] rounded-[16px] p-6 h-fit">
             {[
               { id: 'profile', label: 'Profile', icon: User },
               { id: 'order_history', label: 'Order History', icon: RotateCcwClock},
               { id: 'saved_orders', label: "Saved Orders", icon: Save },
-              { id: 'preferenes', label: "Preferences", icon: Settings2 },
+              { id: 'preferences', label: "Preferences", icon: Settings2 },
               { id: 'address_and_phone', label: "Address & Phone", icon: Phone },
               { id: 'notifications', label: 'Notifications', icon: Bell },
-              { id: 'secutiry', label: "Password & Security", icon: Shield},
+              { id: 'security', label: "Password & Security", icon: Shield},
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -240,8 +271,12 @@ export default function AccountPage() {
             <form onSubmit={handleSave} className="bg-white border border-[#dfe5df] rounded-[16px] p-6 space-y-6 shadow-sm">
               
               {activeTab === 'profile' && (<Profile />)}
+	      {activeTab === 'order_history' && (<OrderHistory />)}
+	      {activeTab === 'saved_orders' && (<SavedOrders />)}
+	      {activeTab === 'preferences' && (<Preferences />)}
+	      {activeTab === 'address_and_phone' && (<AddressAndPhone />)}
+	      {activeTab === 'notifications' && (<Notifications />)}
               {activeTab === 'security' && (<Security />)}
-              {activeTab === 'notifications' && (<Notifications />)}
 
             </form>
           </main>
