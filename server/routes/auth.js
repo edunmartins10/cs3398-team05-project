@@ -50,7 +50,46 @@ router.get('/me', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-  // Logic for POST /api/auth/register
+  const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
+  const zipCode = typeof req.body?.zipCode === 'string' ? req.body.zipCode.trim() : '';
+  const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+  const textUpdates = req.body?.textUpdates === true;
+
+  let data;
+  let error;
+  try {
+    ({ data, error } = await supabase.auth.signUp({
+      email: req.body?.email,
+      password: req.body?.password,
+      options: {
+        data: {
+          username,
+          zipCode,
+          phone,
+          textUpdates,
+          limitRecommendations: true,
+          radiusMiles: '5',
+        },
+      },
+    }));
+  } catch (requestError) {
+    console.error('Could not register with Supabase:', requestError);
+    return res.status(502).json({ error: 'Registration could not be completed. Please try again.' });
+  }
+
+  if (error) {
+    if (error.status >= 400 && error.status < 500) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error('Could not register with Supabase:', error);
+    return res.status(502).json({ error: 'Registration could not be completed. Please try again.' });
+  }
+
+  return res.status(201).json({
+    message: data.session
+      ? 'Account created. You can now log in.'
+      : 'Account created. Check your email for a confirmation link before logging in.',
+  });
 });
 
 router.post('/login', async (req, res) => {
