@@ -29,11 +29,11 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
           username: form.get('username'), password: form.get('password'), email,
           zipCode: form.get('zipCode'), phone: form.get('phone'), textUpdates: form.get('textUpdates') === 'on',
         });
-        setMessage([result.message || 'Check your email for a verification link.', result.locationWarning].filter(Boolean).join(' '));
+        setMessage(result.message || 'Check your email for a verification link.');
         setVerificationUrl(result.verificationUrl || '');
         setMode('login');
       } else {
-        await postJson('/api/auth/login', { identifier: form.get('identifier'), password: form.get('password') });
+        await postJson('/api/auth/login', { email: form.get('email'), password: form.get('password') });
         await onSignedIn();
       }
     } catch (err) { setError(err.message); }
@@ -64,15 +64,15 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
             <input id="signupPassword" name="password" type="password" autoComplete="new-password" minLength={10} required placeholder="At least 10 characters" />
             <label htmlFor="zipCode">Home ZIP code</label>
             <input id="zipCode" name="zipCode" inputMode="numeric" autoComplete="postal-code" pattern="\d{5}" maxLength={5} required placeholder="5-digit US ZIP" />
-            <p className="fine location-disclosure">Your ZIP code is looked up through Zippopotam.us to estimate distances. Bitewise stores the approximate ZIP-center coordinates with your account.</p>
+            <p className="fine location-disclosure">Your ZIP code is saved with your account for future location features.</p>
             <label htmlFor="signupPhone">Phone number <span className="optional">optional</span></label>
             <input id="signupPhone" name="phone" type="tel" autoComplete="tel" placeholder="(512) 555-0123" />
             <label className="consent"><input type="checkbox" name="textUpdates" /><span>Send me Bitewise text updates. Message and data rates may apply. Reply STOP to opt out.</span></label>
           </>
         ) : (
           <>
-            <label htmlFor="identifier">Username or email</label>
-            <input id="identifier" name="identifier" autoComplete="username" required placeholder="Username or email address" />
+            <label htmlFor="loginEmail">Email address</label>
+            <input id="loginEmail" name="email" type="email" autoComplete="email" required placeholder="you@example.com" />
             <label htmlFor="loginPassword">Password</label>
             <input id="loginPassword" name="password" type="password" autoComplete="current-password" required />
           </>

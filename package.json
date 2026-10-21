@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.104.0",
     "@tailwindcss/vite": "^4.3.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
