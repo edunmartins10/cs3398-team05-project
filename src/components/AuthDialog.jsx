@@ -6,7 +6,6 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
   const [mode, setMode] = useState('login');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [verificationUrl, setVerificationUrl] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -17,7 +16,7 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
 
   async function submit(event) {
     event.preventDefault();
-    setError(''); setMessage(''); setVerificationUrl(''); setBusy(true);
+    setError(''); setMessage(''); setBusy(true);
     const form = new FormData(event.currentTarget);
     try {
       if (mode === 'register') {
@@ -29,11 +28,14 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
           username: form.get('username'), password: form.get('password'), email,
           zipCode: form.get('zipCode'), phone: form.get('phone'), textUpdates: form.get('textUpdates') === 'on',
         });
-        setMessage([result.message || 'Check your email for a verification link.', result.locationWarning].filter(Boolean).join(' '));
-        setVerificationUrl(result.verificationUrl || '');
-        setMode('login');
+        if (result.authenticated) {
+          await onSignedIn();
+        } else {
+          setMessage(result.message || 'Account created.');
+          setMode('login');
+        }
       } else {
-        await postJson('/api/auth/login', { identifier: form.get('identifier'), password: form.get('password') });
+        await postJson('/api/auth/login', { email: form.get('email'), password: form.get('password') });
         await onSignedIn();
       }
     } catch (err) { setError(err.message); }
@@ -64,23 +66,23 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
             <input id="signupPassword" name="password" type="password" autoComplete="new-password" minLength={10} required placeholder="At least 10 characters" />
             <label htmlFor="zipCode">Home ZIP code</label>
             <input id="zipCode" name="zipCode" inputMode="numeric" autoComplete="postal-code" pattern="\d{5}" maxLength={5} required placeholder="5-digit US ZIP" />
-            <p className="fine location-disclosure">Your ZIP code is looked up through Zippopotam.us to estimate distances. Bitewise stores the approximate ZIP-center coordinates with your account.</p>
+            <p className="fine location-disclosure">Your ZIP code is saved with your account for future location features.</p>
             <label htmlFor="signupPhone">Phone number <span className="optional">optional</span></label>
             <input id="signupPhone" name="phone" type="tel" autoComplete="tel" placeholder="(512) 555-0123" />
             <label className="consent"><input type="checkbox" name="textUpdates" /><span>Send me Bitewise text updates. Message and data rates may apply. Reply STOP to opt out.</span></label>
           </>
         ) : (
           <>
-            <label htmlFor="identifier">Username or email</label>
-            <input id="identifier" name="identifier" autoComplete="username" required placeholder="Username or email address" />
+            <label htmlFor="loginEmail">Email address</label>
+            <input id="loginEmail" name="email" type="email" autoComplete="email" required placeholder="you@example.com" />
             <label htmlFor="loginPassword">Password</label>
             <input id="loginPassword" name="password" type="password" autoComplete="current-password" required />
           </>
         )}
-        {message && <div className="form-message" role="status">{message}{verificationUrl && <a href={verificationUrl}>Verify this email in this preview ↗</a>}</div>}
+        {message && <div className="form-message" role="status">{message}</div>}
         {error && <div className="form-error" role="alert">{error}</div>}
-        <button className="primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'register' ? 'Create account and verify email →' : 'Log in →'}</button>
-        {mode === 'register' && <p className="fine form-footnote">We’ll email a one-time confirmation link. You must verify your email before logging in.</p>}
+        <button className="primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'register' ? 'Create account →' : 'Log in →'}</button>
+        {mode === 'register' && <p className="fine form-footnote">You’ll be signed in as soon as your account is created.</p>}
       </form>
     </dialog>
   );
