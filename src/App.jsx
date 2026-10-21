@@ -7,7 +7,7 @@ import ImportDialog from './components/ImportDialog.jsx';
 import AuthDialog from './components/AuthDialog.jsx';
 import AccountDialog from './components/AccountDialog.jsx';
 import DonationDialog from './components/DonationDialog.jsx';
-import { createSampleMenu } from './data/sampleMenu.js';
+import { createSampleMenu, dietaryOptions } from './data/sampleMenu.js';
 import { parseMenu, rankedOrders, restaurantNames } from './lib/value.js';
 import { api, postJson, putJson } from './lib/api.js';
 import { distanceMiles, radiusLimit, restaurantLocations } from './lib/location.js';
@@ -21,6 +21,7 @@ export default function App() {
   const [goal, setGoal] = useState(DEFAULTS.goal);
   const [minimum, setMinimum] = useState(DEFAULTS.minimum);
   const [combos, setCombos] = useState(DEFAULTS.combos);
+  const [selectedAllergens, setSelectedAllergens] = useState([]);
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
@@ -36,12 +37,16 @@ export default function App() {
     for (const item of menu) counts[item.restaurant] = (counts[item.restaurant] || 0) + 1;
     return counts;
   }, [menu]);
+
   const distanceByRestaurant = useMemo(() => Object.fromEntries(names.map((name) => {
     const itemLocation = menu.find((item) => item.restaurant === name && Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
     const location = itemLocation || restaurantLocations[name];
-    const distance = profile && location ? distanceMiles({ latitude: profile.latitude, longitude: profile.longitude }, location) : null;
+    const distance = profile && location
+      ? distanceMiles({ latitude: profile.latitude, longitude: profile.longitude }, location)
+      : null;
     return [name, distance];
   })), [names, menu, profile]);
+
   const visibleMenu = useMemo(() => {
     const limit = radiusLimit(profile);
     if (!profile || !profile.limitRecommendations || !profile.latitude || !profile.longitude) return menu;
@@ -50,47 +55,20 @@ export default function App() {
       return distance !== null && distance <= limit;
     });
   }, [menu, profile, distanceByRestaurant]);
+
   const list = useMemo(
-    () => rankedOrders(visibleMenu, selected, budget, minimum, combos, goal),
-    [visibleMenu, selected, budget, minimum, combos, goal],
+    () => rankedOrders(visibleMenu, selected, budget, minimum, combos, goal, selectedAllergens),
+    [visibleMenu, selected, budget, minimum, combos, goal, selectedAllergens],
   );
 
   useEffect(() => {
     api('/api/auth/me').then((data) => setProfile(data.profile || null)).catch(() => setProfile(null));
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('verify');
-    const donation = params.get('donation');
-    if (donation === 'success') { setNotice('Thanks for supporting Bitewise!'); setNoticeError(false); }
-    if (donation === 'cancelled') { setNotice('Your donation was cancelled. No payment was made.'); setNoticeError(false); }
-    if (token) {
-      postJson('/api/auth/verify', { token })
-        .then(() => {
-          setNotice('Email confirmed. You can now log in.');
-          setNoticeError(false);
-          setAuthOpen(true);
-        })
-        .catch((error) => {
-          setNotice(error.message);
-          setNoticeError(true);
-        })
-        .finally(() => {
-          params.delete('verify');
-          const query = params.toString();
-          window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
-        });
-    }
-    if (donation) {
-      params.delete('donation');
-      const query = params.toString();
-      window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
-    }
   }, []);
 
   function toggleRestaurant(name, checked) {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(name);
-      else next.delete(name);
+      if (checked) next.add(name); else next.delete(name);
       return next;
     });
   }
@@ -100,6 +78,7 @@ export default function App() {
     setGoal(DEFAULTS.goal);
     setMinimum(DEFAULTS.minimum);
     setCombos(DEFAULTS.combos);
+    setSelectedAllergens([]);
     setSelected(new Set(menu.map((x) => x.restaurant)));
   }
 
@@ -114,8 +93,7 @@ export default function App() {
       }
       const start = menu.length ? Math.max(...menu.map((x) => x.id)) + 1 : 0;
       const custom = parseMenu(menuText, name, start).map((item) => ({ ...item, ...location }));
-      const nextMenu = menu.filter((x) => x.restaurant !== name).concat(custom);
-      setMenu(nextMenu);
+      setMenu(menu.filter((x) => x.restaurant !== name).concat(custom));
       setSelected(new Set([name]));
       setMinimum('0');
       setImportError('');
@@ -128,9 +106,7 @@ export default function App() {
   async function saveProfile(changes) {
     const data = await putJson('/api/profile', changes);
     setProfile(data.profile);
-    setNotice(changes.textUpdates && !data.smsDeliveryConfigured
-      ? 'Your settings are saved. The site owner still needs to connect an SMS provider before text updates can be delivered.'
-      : 'Your account and recommendation settings are saved.');
+    setNotice('Your account and recommendation settings are saved.');
     setNoticeError(false);
   }
 
@@ -143,7 +119,7 @@ export default function App() {
   }
 
   async function signOut() {
-    try { await postJson('/api/auth/logout', {}); } catch { /* Clear the local view even if the network is interrupted. */ }
+    try { await postJson('/api/auth/logout', {}); } catch {}
     setProfile(null);
     setNotice('You have been logged out.');
     setNoticeError(false);
@@ -161,19 +137,29 @@ export default function App() {
       />
       <main>
         <Intro />
-        {!profile && <div className="account-prompt"><strong>Make Bitewise yours.</strong><span>Create an account to save your ZIP code, manage travel distance, and opt in to text updates.</span><button type="button" onClick={() => setAuthOpen(true)}>Create account</button></div>}
         {notice && <div className={`notice ${noticeError ? 'notice-error' : ''}`} role="status"><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="Dismiss">×</button></div>}
         <div className="demo">
-          <strong>Sample menu mode</strong>
-          <span>Illustrative prices and nutrition, not current restaurant offers. Distances are approximate sample locations. Add your own menu for a real comparison.</span>
+          <strong>Expanded San Marcos menu mode</strong>
+          <span>Menu names are based on real restaurant offerings. Demo prices, calories, protein, and allergen tags should be verified against current official menus before production use.</span>
         </div>
-        {profile?.limitRecommendations && !profile.latitude && <div className="notice notice-error">We couldn’t look up that ZIP code, so distance filtering is paused. Update your ZIP in Account settings.</div>}
         <div className="workspace">
           <Filters
-            budget={budget} onBudgetChange={setBudget} goal={goal} onGoalChange={setGoal}
-            minimum={minimum} onMinimumChange={setMinimum} restaurants={names} itemCounts={itemCounts}
-            selected={selected} onToggleRestaurant={toggleRestaurant} combos={combos}
-            onCombosChange={setCombos} onReset={resetFilters}
+            budget={budget}
+            onBudgetChange={setBudget}
+            goal={goal}
+            onGoalChange={setGoal}
+            minimum={minimum}
+            onMinimumChange={setMinimum}
+            restaurants={names}
+            itemCounts={itemCounts}
+            selected={selected}
+            onToggleRestaurant={toggleRestaurant}
+            allergens={dietaryOptions}
+            selectedAllergens={selectedAllergens}
+            onAllergenChange={setSelectedAllergens}
+            combos={combos}
+            onCombosChange={setCombos}
+            onReset={resetFilters}
           />
           <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} />
         </div>
@@ -181,7 +167,6 @@ export default function App() {
           <span className="brand footerbrand">bitewise.</span>
           <span>A little math. A better lunch.</span>
           <button type="button" className="text-button" onClick={() => setDonationOpen(true)}>Support Bitewise</button>
-          <a href="https://unsplash.com/photos/burger-with-lettuce-and-fries-PxJ9zkM2wdA" target="_blank" rel="noreferrer">Photo: Unsplash ↗</a>
         </footer>
       </main>
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} onSubmit={importMenu} error={importError} />
