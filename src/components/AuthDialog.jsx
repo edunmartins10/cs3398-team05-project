@@ -6,7 +6,6 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
   const [mode, setMode] = useState('login');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [verificationUrl, setVerificationUrl] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -17,7 +16,7 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
 
   async function submit(event) {
     event.preventDefault();
-    setError(''); setMessage(''); setVerificationUrl(''); setBusy(true);
+    setError(''); setMessage(''); setBusy(true);
     const form = new FormData(event.currentTarget);
     try {
       if (mode === 'register') {
@@ -29,9 +28,12 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
           username: form.get('username'), password: form.get('password'), email,
           zipCode: form.get('zipCode'), phone: form.get('phone'), textUpdates: form.get('textUpdates') === 'on',
         });
-        setMessage(result.message || 'Check your email for a verification link.');
-        setVerificationUrl(result.verificationUrl || '');
-        setMode('login');
+        if (result.authenticated) {
+          await onSignedIn();
+        } else {
+          setMessage(result.message || 'Account created.');
+          setMode('login');
+        }
       } else {
         await postJson('/api/auth/login', { email: form.get('email'), password: form.get('password') });
         await onSignedIn();
@@ -77,10 +79,10 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
             <input id="loginPassword" name="password" type="password" autoComplete="current-password" required />
           </>
         )}
-        {message && <div className="form-message" role="status">{message}{verificationUrl && <a href={verificationUrl}>Verify this email in this preview ↗</a>}</div>}
+        {message && <div className="form-message" role="status">{message}</div>}
         {error && <div className="form-error" role="alert">{error}</div>}
-        <button className="primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'register' ? 'Create account and verify email →' : 'Log in →'}</button>
-        {mode === 'register' && <p className="fine form-footnote">We’ll email a one-time confirmation link. You must verify your email before logging in.</p>}
+        <button className="primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'register' ? 'Create account →' : 'Log in →'}</button>
+        {mode === 'register' && <p className="fine form-footnote">You’ll be signed in as soon as your account is created.</p>}
       </form>
     </dialog>
   );

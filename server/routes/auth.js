@@ -38,7 +38,7 @@ router.get('/me', async (req, res) => {
     profile: {
       username: metadata.username || user.email || '',
       email: user.email || '',
-      zipCode: metadata.zipCode || '',
+      zipCode: metadata.home_zip || metadata.zipCode || '',
       latitude: metadata.latitude ?? null,
       longitude: metadata.longitude ?? null,
       phone: metadata.phone || '',
@@ -65,6 +65,7 @@ router.post('/register', async (req, res) => {
         data: {
           username,
           zipCode,
+          home_zip: zipCode,
           phone,
           textUpdates,
           limitRecommendations: true,
@@ -74,7 +75,10 @@ router.post('/register', async (req, res) => {
     }));
   } catch (requestError) {
     console.error('Could not register with Supabase:', requestError);
-    return res.status(502).json({ error: 'Registration could not be completed. Please try again.' });
+    const details = requestError?.message ? ` Details: ${requestError.message}` : '';
+    return res.status(502).json({
+      error: `Could not reach Supabase Auth. Check the server connection and try again.${details}`,
+    });
   }
 
   if (error) {
@@ -82,14 +86,26 @@ router.post('/register', async (req, res) => {
       return res.status(error.status).json({ error: error.message });
     }
     console.error('Could not register with Supabase:', error);
-    return res.status(502).json({ error: 'Registration could not be completed. Please try again.' });
+    return res.status(502).json({
+      error: error.message || 'Supabase Auth could not complete registration. Check the Supabase Auth logs and email settings.',
+    });
   }
 
-  return res.status(201).json({
-    message: data.session
-      ? 'Account created. You can now log in.'
-      : 'Account created. Check your email for a confirmation link before logging in.',
+  const session = data?.session;
+  if (!session?.access_token || !Number.isFinite(session.expires_in) || session.expires_in <= 0) {
+    return res.status(409).json({
+      error: 'Registration did not return a session. Check that email confirmation is disabled in Supabase and that this email is not already registered.',
+    });
+  }
+
+  res.cookie('bitewise_session', session.access_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: session.expires_in * 1000,
   });
+  return res.status(201).json({ ok: true, authenticated: true });
 });
 
 router.post('/login', async (req, res) => {

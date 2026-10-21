@@ -60,27 +60,9 @@ export default function HomePage() {
   useEffect(() => {
     api('/api/auth/me').then((data) => setProfile(data.profile || null)).catch(() => setProfile(null));
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('verify');
     const donation = params.get('donation');
     if (donation === 'success') { setNotice('Thanks for supporting Bitewise!'); setNoticeError(false); }
     if (donation === 'cancelled') { setNotice('Your donation was cancelled. No payment was made.'); setNoticeError(false); }
-    if (token) {
-      postJson('/api/auth/verify', { token })
-        .then(() => {
-          setNotice('Email confirmed. You can now log in.');
-          setNoticeError(false);
-          setAuthOpen(true);
-        })
-        .catch((error) => {
-          setNotice(error.message);
-          setNoticeError(true);
-        })
-        .finally(() => {
-          params.delete('verify');
-          const query = params.toString();
-          window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
-        });
-    }
     if (donation) {
       params.delete('donation');
       const query = params.toString();
