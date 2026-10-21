@@ -1,6 +1,6 @@
 import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js';
 
-function Winner({ order, goal, budgetCents, distance }) {
+function Winner({ order, goal, budgetCents, distance, onOrder }) {
   const metric = winnerMetric(order, goal);
   return (
     <article className="winner">
@@ -38,11 +38,12 @@ function Winner({ order, goal, budgetCents, distance }) {
           ? 'Check local menu prices before ordering.'
           : 'Based on the prices and nutrition you entered.'}
       </p>
+      <button type="button" className="order-button" onClick={() => onOrder(order)}>I ordered this</button>
     </article>
   );
 }
 
-export default function Results({ list, goal, budgetDollars, distances = {}, profile }) {
+export default function Results({ list, goal, budgetDollars, distances = {}, profile, onOrder }) {
   const raw = Number(budgetDollars);
   const budgetCents = Number.isFinite(raw) ? Math.max(0, Math.round(raw * 100)) : 0;
   const rest = list.slice(1, 7);
@@ -63,7 +64,7 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
             <p>{profile?.limitRecommendations ? 'Try a wider recommendation distance, or turn off distance limits in Account settings.' : 'Try a higher budget, a lower calorie minimum, or select another restaurant.'}</p>
           </div>
         ) : (
-          <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} />
+          <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} onOrder={onOrder} />
         )}
       </div>
       {list.length > 0 && (
@@ -87,6 +88,7 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
                     <span>{x.protein}g protein</span>
                     <span className="ratio">{ratioLabel(x, goal)}</span>
                   </div>
+                  <button type="button" className="order-button" onClick={() => onOrder(x)}>I ordered this</button>
                 </div>
                 <div className="price">{money(x.price)}</div>
               </article>

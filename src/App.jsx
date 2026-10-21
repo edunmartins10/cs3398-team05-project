@@ -7,6 +7,7 @@ import ImportDialog from './components/ImportDialog.jsx';
 import AuthDialog from './components/AuthDialog.jsx';
 import AccountDialog from './components/AccountDialog.jsx';
 import DonationDialog from './components/DonationDialog.jsx';
+import OrderDialog from './components/OrderDialog.jsx';
 import { createSampleMenu } from './data/sampleMenu.js';
 import { parseMenu, rankedOrders, restaurantNames } from './lib/value.js';
 import { api, postJson, putJson } from './lib/api.js';
@@ -29,7 +30,8 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [notice, setNotice] = useState('');
   const [noticeError, setNoticeError] = useState(false);
-
+  const [orderItem, setOrderItem] = useState(null);
+  const [orderHistory, setOrderHistory] = useState([]);
   const names = useMemo(() => restaurantNames(menu), [menu]);
   const itemCounts = useMemo(() => {
     const counts = {};
@@ -149,6 +151,13 @@ export default function App() {
     setNoticeError(false);
   }
 
+  function confirmOrder(item) {
+  setOrderHistory((prev) => [{ ...item, orderedAt: new Date().toISOString() }, ...prev]);
+  setOrderItem(null);
+  setNotice(`Added "${item.name}" to your order history.`);
+  setNoticeError(false);
+}
+
   return (
     <>
       <Header
@@ -175,7 +184,7 @@ export default function App() {
             selected={selected} onToggleRestaurant={toggleRestaurant} combos={combos}
             onCombosChange={setCombos} onReset={resetFilters}
           />
-          <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} />
+          <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} onOrder={setOrderItem} />
         </div>
         <footer>
           <span className="brand footerbrand">bitewise.</span>
@@ -188,6 +197,7 @@ export default function App() {
       <AuthDialog open={authOpen} onClose={() => setAuthOpen(false)} onSignedIn={signedIn} initialMessage={notice} />
       {profile && <AccountDialog open={accountOpen} onClose={() => setAccountOpen(false)} profile={profile} onSave={saveProfile} onSignOut={signOut} />}
       <DonationDialog open={donationOpen} onClose={() => setDonationOpen(false)} onError={(message) => { setNotice(message); setNoticeError(true); }} />
+      <OrderDialog item={orderItem} onConfirm={confirmOrder} onClose={() => setOrderItem(null)} />
     </>
   );
 }
