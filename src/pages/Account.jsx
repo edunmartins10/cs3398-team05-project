@@ -209,7 +209,7 @@ export default function AccountPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-9 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-9 mb-12 h-full">
           {/* Sidebar */}
           <nav className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-1 overflow-x-auto pb-2 md:pb-0 bg-white border border-[#dfe5df] rounded-[16px] p-6 h-fit">
             {[
@@ -247,7 +247,7 @@ export default function AccountPage() {
           </main>
         </div>
 
-        <footer className="mt-auto py-[26px] border-t border-[#dfe5df] flex items-center gap-[25px] text-[#63726c] text-[13px]">
+        <footer className="fixed bottom-0 py-[26px] border-t border-[#dfe5df] flex items-center gap-[25px] text-[#63726c] text-[13px]">
           <span className="font-['Space_Grotesk'] font-bold text-[22px] text-[#172b25]">bitewise.</span>
           <span>A little math. A better lunch.</span>
           <a href="https://unsplash.com/photos/burger-with-lettuce-and-fries-PxJ9zkM2wdA" target="_blank" rel="noreferrer" className="ml-auto text-xs text-[#63726c]">Photo: Unsplash ↗</a>
