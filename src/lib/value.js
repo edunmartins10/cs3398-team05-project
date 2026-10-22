@@ -14,6 +14,12 @@ export function orders(items, budget, min, combos) {
       all.push({
         restaurant: a.restaurant,
         name: b ? (a.id === b.id ? '2 × ' + a.name : a.name + ' + ' + b.name) : a.name,
+        items: [a, ...(b ? [b] : [])].map((item) => ({
+          name: item.name,
+          price: item.price,
+          calories: item.calories,
+          protein: item.protein,
+        })),
         price,
         calories,
         protein,

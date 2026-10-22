@@ -32,7 +32,6 @@ export default function HomePage() {
   const [notice, setNotice] = useState('');
   const [noticeError, setNoticeError] = useState(false);
   const [orderItem, setOrderItem] = useState(null);
-  const [orderHistory, setOrderHistory] = useState([]);
   const names = useMemo(() => restaurantNames(menu), [menu]);
   const itemCounts = useMemo(() => {
     const counts = {};
@@ -134,12 +133,23 @@ export default function HomePage() {
     setNoticeError(false);
   }
 
-  function confirmOrder(item) {
-  setOrderHistory((prev) => [{ ...item, orderedAt: new Date().toISOString() }, ...prev]);
-  setOrderItem(null);
-  setNotice(`Added "${item.name}" to your order history.`);
-  setNoticeError(false);
-}
+  async function confirmOrder(item) {
+    if (!profile) {
+      setOrderItem(null);
+      setNotice('Log in to save orders to your order history.');
+      setNoticeError(false);
+      setAuthOpen(true);
+      return;
+    }
+
+    await postJson('/api/auth/orders', {
+      restaurant: item.restaurant,
+      items: item.items,
+    });
+    setOrderItem(null);
+    setNotice(`Added "${item.name}" to your order history.`);
+    setNoticeError(false);
+  }
 
     return (
     <>

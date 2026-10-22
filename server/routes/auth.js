@@ -1,13 +1,7 @@
 import { Router } from 'express';
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = 'https://oggrhcnritonacqfhdnx.supabase.co/';
-const PUBLISHABLE_KEY = 'sb_publishable_G32hbUJ2qsDivoO7G5lbDw_G_tsOmuT';
+import { SUPABASE_URL, supabase } from '../services/supabase.js';
 
 const router = Router();
-const supabase = createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
-});
 
 router.get('/me', async (req, res) => {
   const accessToken = req.cookies?.bitewise_session;

@@ -5,11 +5,17 @@ import { FcGoogle } from "react-icons/fc";
 import { FaFacebook, FaFacebookSquare } from "react-icons/fa";
 import { api, postJson, putJson } from '../lib/api.js';
 import Footer from '../components/Footer.jsx';
+import OrderHistory from '../components/OrderHistory.jsx';
 
 export default function AccountPage() {
-  const [activeTab, setActiveTab] = useState('account');
+  const [activeTab, setActiveTab] = useState(() => (
+    new URLSearchParams(window.location.search).get('tab') === 'order_history' ? 'order_history' : 'account'
+  ));
   const [saved, setSaved] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState('');
   const [notice, setNotice] = useState('');
   const [noticeError, setNoticeError] = useState(false);
 
@@ -22,8 +28,11 @@ export default function AccountPage() {
   });
 
   useEffect(() => {
-    api('/api/auth/me')
-      .then((data) => {
+    let active = true;
+    async function loadAccount() {
+      try {
+        const data = await api('/api/auth/me');
+        if (!active) return;
         if (data.profile) {
           setProfile(data.profile);
           setFormData((prev) => ({
@@ -31,9 +40,20 @@ export default function AccountPage() {
             name: data.profile.username || '',
             email: data.profile.email || '',
           }));
+          const history = await api('/api/auth/orders');
+          if (active) setOrders(history.orders);
         }
-      })
-      .catch(() => setProfile(null));
+      } catch (err) {
+        if (active) {
+          setProfile(null);
+          setOrdersError(err.message);
+        }
+      } finally {
+        if (active) setOrdersLoading(false);
+      }
+    }
+    loadAccount();
+    return () => { active = false; };
   }, []);
 
   const handleChange = (e) => {
@@ -92,17 +112,6 @@ export default function AccountPage() {
         <h2 className="text-lg font-semibold text-[#172b25] py-4 border-b border-[#dfe5df]">Security</h2>
       </div>
     )
-  }
-
-  function OrderHistory(){
-
-	  return(
-      <div className="h-full w-full space-y-4 border-black">
-        <h2 className="text-lg font-semibold text-[#172b25] py-4 border-b border-[#dfe5df]">Order History</h2>
-        <h3 className="text-center text-2xl py-4 font-medium text-[#172b25]/100">You Dont Have Any Recent Orders.</h3>
-      </div>
-    )
-
   }
 
   function SavedOrders(){
@@ -273,7 +282,9 @@ export default function AccountPage() {
           <main className="flex-1 bg-white border border-[#dfe5df] rounded-[16px] p-6 h-[480px] overflow-y-auto">
               
             {activeTab === 'account' && (<Account />)}
-	          {activeTab === 'order_history' && (<OrderHistory />)}
+	          {activeTab === 'order_history' && (
+              <OrderHistory profile={profile} orders={orders} loading={ordersLoading} error={ordersError} />
+            )}
 	          {activeTab === 'saved_orders' && (<SavedOrders />)}
 	          {activeTab === 'preferences' && (<Preferences />)}
 	          {activeTab === 'address_and_phone' && (<AddressAndPhone />)}
