@@ -12,6 +12,7 @@ export default function ImportDialog({ open, onClose, onSubmit, error }) {
 
   return (
     <dialog
+      className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
       ref={dialogRef}
       onClose={onClose}
       onCancel={onClose}

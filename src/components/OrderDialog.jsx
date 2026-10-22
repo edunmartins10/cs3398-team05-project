@@ -8,7 +8,7 @@ export default function OrderDialog({ item, onConfirm, onClose }) {
   }, [item]);
 
   return (
-    <dialog ref={ref} className="order-dialog" onClose={onClose} onCancel={onClose}>
+    <dialog ref={ref} className="order-dialog absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" onClose={onClose} onCancel={onClose}>
       {item && (
         <>
           <div className="dialoghead">
