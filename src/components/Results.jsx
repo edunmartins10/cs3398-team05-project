@@ -1,4 +1,5 @@
-import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js';
+   import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js';
+   import './Results.css';
 
 function Winner({ order, goal, budgetCents, distance, onOrder }) {
   const metric = winnerMetric(order, goal);
