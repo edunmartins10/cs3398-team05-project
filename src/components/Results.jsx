@@ -38,7 +38,7 @@ function Winner({ order, goal, budgetCents, distance, onOrder }) {
           ? 'Check local menu prices before ordering.'
           : 'Based on the prices and nutrition you entered.'}
       </p>
-      <button type="button" className="order-button" onClick={() => onOrder(order)}>I ordered this</button>
+      <button type="button" className="mt-4 rounded-md border hover:bg-[#13543c] transition duration-300 px-4 py-2 " onClick={() => onOrder(order)}>Add to Order</button>
     </article>
   );
 }
@@ -88,7 +88,7 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
                     <span>{x.protein}g protein</span>
                     <span className="ratio">{ratioLabel(x, goal)}</span>
                   </div>
-                  <button type="button" className="order-button" onClick={() => onOrder(x)}>I ordered this</button>
+                  <button type="button" className="rounded-md border-[#dfe5df] bg-gray-100 transition-all durration-300 hover:bg-gray-100 mt-2 p-2 border" onClick={() => onOrder(x)}>Add to Order</button>
                 </div>
                 <div className="price">{money(x.price)}</div>
               </article>

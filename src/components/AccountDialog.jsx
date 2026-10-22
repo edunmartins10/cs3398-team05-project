@@ -28,7 +28,7 @@ export default function AccountDialog({ open, onClose, profile, onSave, onSignOu
   }
 
   return (
-    <dialog ref={ref} className="account-dialog" onClose={onClose} onCancel={onClose}>
+    <dialog ref={ref} className="account-dialog absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" onClose={onClose} onCancel={onClose}>
       <form onSubmit={submit}>
         <div className="dialoghead"><div><div className="eyebrow">ACCOUNT SETTINGS</div><h2>Hi, {profile.username}</h2></div><button type="button" className="close" onClick={onClose} aria-label="Close">×</button></div>
         <p className="profile-email">{profile.email} <span className="verified-label">Email verified</span></p>

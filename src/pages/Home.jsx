@@ -13,6 +13,7 @@ import { createSampleMenu } from '../data/sampleMenu.js';
 import { parseMenu, rankedOrders, restaurantNames } from '../lib/value.js';
 import { api, postJson, putJson } from '../lib/api.js';
 import { distanceMiles, radiusLimit, restaurantLocations } from '../lib/location.js';
+import Footer from '../components/Footer.jsx';
 const DEFAULTS = { budget: '10', goal: 'balanced', minimum: '400', combos: true };
 
 export default function HomePage() {
@@ -139,8 +140,9 @@ export default function HomePage() {
   setNotice(`Added "${item.name}" to your order history.`);
   setNoticeError(false);
 }
+
     return (
-<>
+    <>
       <Header
         onOpenImport={() => { setImportError(''); setImportOpen(true); }}
         profile={profile}
@@ -152,13 +154,35 @@ export default function HomePage() {
 
       <main>
         <Intro />
-        {!profile && <div className="account-prompt"><strong>Make Bitewise yours.</strong><span>Create an account to save your ZIP code, manage travel distance, and opt in to text updates.</span><button type="button" onClick={() => setAuthOpen(true)}>Create account</button></div>}
-        {notice && <div className={`notice ${noticeError ? 'notice-error' : ''}`} role="status"><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="Dismiss">×</button></div>}
+
+        {!profile && 
+          <div className="account-prompt">
+            <strong>Make Bitewise yours.</strong>
+            <span>Create an account to save your ZIP code, manage travel distance, and opt in to text updates.</span>
+            <button type="button" onClick={() => setAuthOpen(true)}>
+              Create account
+            </button>
+          </div>
+        }
+
+        {notice && 
+          <div className={`notice ${noticeError ? 'notice-error' : ''}`} role="status">
+            <span>{notice}</span>
+            <button type="button" onClick={() => setNotice('')} aria-label="Dismiss">×</button>
+          </div>
+        }
+
         <div className="demo">
           <strong>Sample menu mode</strong>
           <span>Illustrative prices and nutrition, not current restaurant offers. Distances are approximate sample locations. Add your own menu for a real comparison.</span>
         </div>
-        {profile?.limitRecommendations && !profile.latitude && <div className="notice notice-error">We couldn’t look up that ZIP code, so distance filtering is paused. Update your ZIP in Account settings.</div>}
+
+        {profile?.limitRecommendations && !profile.latitude && 
+          <div className="notice notice-error">
+            We couldn’t look up that ZIP code, so distance filtering is paused. Update your ZIP in Account settings.
+          </div>
+          }
+        
         <div className="workspace">
           <Filters
             budget={budget} onBudgetChange={setBudget} goal={goal} onGoalChange={setGoal}
@@ -168,18 +192,45 @@ export default function HomePage() {
           />
           <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} onOrder={setOrderItem} />
         </div>
-        <footer>
-          <span className="brand footerbrand">bitewise.</span>
-          <span>A little math. A better lunch.</span>
-          <button type="button" className="text-button" onClick={() => setDonationOpen(true)}>Support Bitewise</button>
-          <a href="https://unsplash.com/photos/burger-with-lettuce-and-fries-PxJ9zkM2wdA" target="_blank" rel="noreferrer">Photo: Unsplash ↗</a>
-        </footer>
+
+        <Footer />
       </main>
-      <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} onSubmit={importMenu} error={importError} />
-      <AuthDialog open={authOpen} onClose={() => setAuthOpen(false)} onSignedIn={signedIn} initialMessage={notice} />
-      {profile && <AccountDialog open={accountOpen} onClose={() => setAccountOpen(false)} profile={profile} onSave={saveProfile} onSignOut={signOut} />}
-      <DonationDialog open={donationOpen} onClose={() => setDonationOpen(false)} onError={(message) => { setNotice(message); setNoticeError(true); }} />
-      <OrderDialog item={orderItem} onConfirm={confirmOrder} onClose={() => setOrderItem(null)} />
-          </>
+
+      <ImportDialog 
+        open={importOpen} 
+        onClose={() => setImportOpen(false)} 
+        onSubmit={importMenu} 
+        error={importError} 
+      />
+      <AuthDialog 
+        className="justify-center items-center"
+        open={authOpen} 
+        onClose={() => setAuthOpen(false)} 
+        onSignedIn={signedIn} 
+        initialMessage={notice} 
+      />
+
+      {profile && 
+        <AccountDialog 
+          open={accountOpen} 
+          onClose={() => setAccountOpen(false)} 
+          profile={profile} 
+          onSave={saveProfile} 
+          onSignOut={signOut} 
+        />
+      }
+
+      <DonationDialog 
+        open={donationOpen} 
+        onClose={() => setDonationOpen(false)} 
+        onError={(message) => { setNotice(message); setNoticeError(true); }} 
+      />
+      <OrderDialog 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        item={orderItem} 
+        onConfirm={confirmOrder} 
+        onClose={() => setOrderItem(null)} 
+      />
+    </>
     )
 }

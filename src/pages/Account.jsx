@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/Header.jsx';
 import { User, Phone, Bell, LogOut, Check, RotateCcwClock, Save, Settings2, Shield } from 'lucide-react';
 import { api, postJson, putJson } from '../lib/api.js';
+import Footer from '../components/Footer.jsx';
 
 export default function AccountPage() {
   const [activeTab, setActiveTab] = useState('profile');
@@ -282,11 +283,7 @@ export default function AccountPage() {
           </main>
         </div>
 
-        <footer className="fixed bottom-0 py-[26px] border-t border-[#dfe5df] flex items-center gap-[25px] text-[#63726c] text-[13px]">
-          <span className="font-['Space_Grotesk'] font-bold text-[22px] text-[#172b25]">bitewise.</span>
-          <span>A little math. A better lunch.</span>
-          <a href="https://unsplash.com/photos/burger-with-lettuce-and-fries-PxJ9zkM2wdA" target="_blank" rel="noreferrer" className="ml-auto text-xs text-[#63726c]">Photo: Unsplash ↗</a>
-        </footer>
+        <Footer />
       </main>
     </>
   );

@@ -43,7 +43,7 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
   }
 
   return (
-    <dialog ref={ref} className="account-dialog" onClose={onClose} onCancel={onClose}>
+    <dialog ref={ref} className="account-dialog absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" onClose={onClose} onCancel={onClose}>
       <form onSubmit={submit}>
         <div className="dialoghead">
           <div><div className="eyebrow">YOUR BITEWISE ACCOUNT</div><h2>{mode === 'register' ? 'Create an account' : 'Log in'}</h2></div>
