@@ -1,6 +1,6 @@
 import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js';
 
-function Winner({ order, goal, budgetCents, distance }) {
+function Winner({ order, goal, budgetCents, distance, onRecordOrder }) {
   const metric = winnerMetric(order, goal);
   return (
     <article className="winner">
@@ -37,12 +37,21 @@ function Winner({ order, goal, budgetCents, distance }) {
         {order.source === 'sample'
           ? 'Check local menu prices before ordering.'
           : 'Based on the prices and nutrition you entered.'}
-      </p>
+          </p>
+
+      {onRecordOrder && (
+        <button
+          type="button"
+          onClick={() => onRecordOrder(order)}
+        >
+          Record Order
+        </button>
+      )}
     </article>
   );
 }
 
-export default function Results({ list, goal, budgetDollars, distances = {}, profile }) {
+export default function Results({ list, goal, budgetDollars, distances = {}, profile, allergenRestrictionsActive = false, onRecordOrder}) {
   const raw = Number(budgetDollars);
   const budgetCents = Number.isFinite(raw) ? Math.max(0, Math.round(raw * 100)) : 0;
   const rest = list.slice(1, 7);
@@ -60,10 +69,16 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
         {!list.length ? (
           <div className="empty">
             <h3>No orders fit just yet.</h3>
-            <p>{profile?.limitRecommendations ? 'Try a wider recommendation distance, or turn off distance limits in Account settings.' : 'Try a higher budget, a lower calorie minimum, or select another restaurant.'}</p>
+            <p>
+  {allergenRestrictionsActive
+    ? 'No meals meet your current filters and allergen restrictions. Meals with missing allergen information are excluded for safety. Try adjusting your filters or reviewing your allergen settings.'
+    : profile?.limitRecommendations
+      ? 'Try a wider recommendation distance, or turn off distance limits in Account settings.'
+      : 'Try a higher budget, a lower calorie minimum, or select another restaurant.'}
+</p>
           </div>
         ) : (
-          <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} />
+          <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} onRecordOrder={onRecordOrder} />
         )}
       </div>
       {list.length > 0 && (

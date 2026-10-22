@@ -7,6 +7,8 @@ import ImportDialog from './components/ImportDialog.jsx';
 import AuthDialog from './components/AuthDialog.jsx';
 import AccountDialog from './components/AccountDialog.jsx';
 import DonationDialog from './components/DonationDialog.jsx';
+import { supabase, getUserProfile } from './lib/supabase.ts';
+import { hasAllergen } from './algorithms/allergenFilter.js';
 import { createSampleMenu } from './data/sampleMenu.js';
 import { parseMenu, rankedOrders, restaurantNames } from './lib/value.js';
 import { api, postJson, putJson } from './lib/api.js';
@@ -27,6 +29,8 @@ export default function App() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [donationOpen, setDonationOpen] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [recommendationPreferences, setRecommendationPreferences] = useState(null);
+  const [orderHistory, setOrderHistory] = useState([]);
   const [notice, setNotice] = useState('');
   const [noticeError, setNoticeError] = useState(false);
 
@@ -50,13 +54,61 @@ export default function App() {
       return distance !== null && distance <= limit;
     });
   }, [menu, profile, distanceByRestaurant]);
-  const list = useMemo(
-    () => rankedOrders(visibleMenu, selected, budget, minimum, combos, goal),
-    [visibleMenu, selected, budget, minimum, combos, goal],
+
+  const allergenFilteredMenu = useMemo(() => {
+  const excluded = recommendationPreferences?.excludedAllergens ?? [];
+
+  if (excluded.length === 0) {
+    return visibleMenu;
+  }
+
+  return visibleMenu.filter(item =>
+    !hasAllergen(item.allergens, excluded)
   );
+}, [visibleMenu, recommendationPreferences]);
+
+  const list = useMemo(
+  () => rankedOrders(allergenFilteredMenu, selected, budget, minimum, combos, goal, orderHistory),
+  [allergenFilteredMenu, selected, budget, minimum, combos, goal, orderHistory],
+);
 
   useEffect(() => {
-    api('/api/auth/me').then((data) => setProfile(data.profile || null)).catch(() => setProfile(null));
+    /////////
+    api('/api/auth/me')
+  .then(async (data) => {
+    const user = data.profile || null;
+    setProfile(user);
+
+    if (user) {
+      const [preferencesData, historyData] = await Promise.all([
+        api('/api/recommendations/preferences'),
+        api('/api/recommendations/history')
+      ]);
+
+      setRecommendationPreferences(preferencesData.preferences);
+      setOrderHistory(historyData.history);
+      setBudget(String(preferencesData.preferences.budget));
+
+if (preferencesData.preferences.goal === 'personalized') {
+  setGoal('personalized');
+} else if (preferencesData.preferences.goal === 'value') {
+  setGoal('balanced');
+} else if (preferencesData.preferences.goal === 'dietary') {
+  setGoal('dietary');
+}
+      console.log('Loaded Preferences:', preferencesData.preferences);
+      console.log('Loaded Order History:', historyData.history);
+    } else {
+      setRecommendationPreferences(null);
+      setOrderHistory([]);
+    }
+  })
+  .catch((error) => {
+    console.error('Failed to load account data:', error);
+    setRecommendationPreferences(null);
+    setOrderHistory([]);
+  });
+  /////
     const params = new URLSearchParams(window.location.search);
     const token = params.get('verify');
     const donation = params.get('donation');
@@ -84,7 +136,37 @@ export default function App() {
       const query = params.toString();
       window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
     }
+
+    /////temp connection test///
+    async function testSupabase() {
+      const { data, error }  = await supabase.auth.getSession();
+
+      if(error) {
+        console.error("Supabase Error:", error.message);
+      } else {
+        console.log("Supabase Session:", data.session);
+      }
+
+      if (data.session) {
+  try {
+    const profile = await getUserProfile();
+    console.log("Supabase Profile:", profile);
+  } catch (error) {
+    console.error("Profile Error:", error.message);
+  }
+}
+
+
+    }
+
+    testSupabase();
+
+
+
+
   }, []);
+
+
 
   function toggleRestaurant(name, checked) {
     setSelected((prev) => {
@@ -125,26 +207,102 @@ export default function App() {
     }
   }
 
+
+
+  async function recordOrder(order) {
+  try {
+    const result = await postJson('/api/recommendations/history', {
+      mealName: order.name,
+      restaurantName: order.restaurant,
+      category: 'Other'
+    });
+
+    setOrderHistory((previous) => [
+      ...previous,
+      result.order
+    ]);
+
+    setNotice(`${order.name} added to your order history.`);
+    setNoticeError(false);
+  } catch (error) {
+    setNotice(`Could not record order: ${error.message}`);
+    setNoticeError(true);
+  }
+}
+
+
+
+
   async function saveProfile(changes) {
     const data = await putJson('/api/profile', changes);
     setProfile(data.profile);
+
+    if (changes.recommendationPreferences) {
+  const result = await putJson(
+    '/api/recommendations/preferences',
+    changes.recommendationPreferences
+  );
+
+  setRecommendationPreferences(result.preferences);
+  setBudget(String(result.preferences.budget));
+
+  if (result.preferences.goal === 'personalized') {
+  setGoal('personalized');
+} else if (result.preferences.goal === 'value') {
+  setGoal('balanced');
+} else if (result.preferences.goal === 'dietary') {
+  setGoal('dietary');
+}
+  }
+
+
     setNotice(changes.textUpdates && !data.smsDeliveryConfigured
       ? 'Your settings are saved. The site owner still needs to connect an SMS provider before text updates can be delivered.'
       : 'Your account and recommendation settings are saved.');
     setNoticeError(false);
   }
 
+
   async function signedIn() {
-    const data = await api('/api/auth/me');
-    setProfile(data.profile);
-    setAuthOpen(false);
-    setNotice(`Welcome back, ${data.profile.username}.`);
-    setNoticeError(false);
+  const data = await api('/api/auth/me');
+
+  setProfile(data.profile);
+
+  const [preferencesData, historyData] = await Promise.all([
+    api('/api/recommendations/preferences'),
+    api('/api/recommendations/history'),
+  ]);
+
+  const preferences = preferencesData.preferences;
+
+  setRecommendationPreferences(preferences);
+  setOrderHistory(historyData.history ?? []);
+
+  if (preferences) {
+    setBudget(preferences.budget);
+
+    if (preferences.goal === 'personalized') {
+      setGoal('personalized');
+    } else if (preferences.goal === 'dietary') {
+      setGoal('dietary');
+    } else {
+      setGoal('balanced');
+    }
   }
+
+  setAuthOpen(false);
+  setNotice(`Welcome back, ${data.profile.username}.`);
+  setNoticeError(false);
+}
+
 
   async function signOut() {
     try { await postJson('/api/auth/logout', {}); } catch { /* Clear the local view even if the network is interrupted. */ }
     setProfile(null);
+    setRecommendationPreferences(null);
+    setOrderHistory([]);
+    setBudget(1000);
+    setGoal('balanced');
     setNotice('You have been logged out.');
     setNoticeError(false);
   }
@@ -175,7 +333,9 @@ export default function App() {
             selected={selected} onToggleRestaurant={toggleRestaurant} combos={combos}
             onCombosChange={setCombos} onReset={resetFilters}
           />
-          <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} />
+          <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} allergenRestrictionsActive={
+            (recommendationPreferences?.excludedAllergens?.length ?? 0) >  0}
+          onRecordOrder={profile ? recordOrder : undefined} />
         </div>
         <footer>
           <span className="brand footerbrand">bitewise.</span>
@@ -186,7 +346,17 @@ export default function App() {
       </main>
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} onSubmit={importMenu} error={importError} />
       <AuthDialog open={authOpen} onClose={() => setAuthOpen(false)} onSignedIn={signedIn} initialMessage={notice} />
-      {profile && <AccountDialog open={accountOpen} onClose={() => setAccountOpen(false)} profile={profile} onSave={saveProfile} onSignOut={signOut} />}
+      {profile && (
+  <AccountDialog
+    open={accountOpen}
+    onClose={() => setAccountOpen(false)}
+    profile={profile}
+    recommendationPreferences={recommendationPreferences}
+    onSave={saveProfile}
+    onSignOut={signOut}
+    key={`${recommendationPreferences?.budget}-${recommendationPreferences?.goal}`}
+  />
+)}
       <DonationDialog open={donationOpen} onClose={() => setDonationOpen(false)} onError={(message) => { setNotice(message); setNoticeError(true); }} />
     </>
   );

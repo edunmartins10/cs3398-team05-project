@@ -1,3 +1,5 @@
+import { calculateDietaryScore } from '../algorithms/dietaryScore.js';
+
 export const money = (cents) => '$' + (cents / 100).toFixed(2);
 
 export function restaurantNames(menu) {
@@ -10,6 +12,18 @@ export function orders(items, budget, min, combos) {
     const price = a.price + (b?.price || 0);
     const calories = a.calories + (b?.calories || 0);
     const protein = a.protein + (b?.protein || 0);
+    const combineNutrient = (field) => {
+  if (a[field] == null || (b && b[field] == null)) {
+    return null;
+  }
+
+  return a[field] + (b ? b[field] : 0);
+};
+
+const carbs = combineNutrient('carbs');
+const fat = combineNutrient('fat');
+const fiber = combineNutrient('fiber');
+const sodium = combineNutrient('sodium');
     if (price <= budget && calories >= min) {
       all.push({
         restaurant: a.restaurant,
@@ -17,6 +31,10 @@ export function orders(items, budget, min, combos) {
         price,
         calories,
         protein,
+        carbs,
+        fat,
+        fiber,
+        sodium,
         source: a.source,
         cpd: calories / (price / 100),
         ppd: protein / (price / 100),
@@ -34,20 +52,59 @@ export function orders(items, budget, min, combos) {
   return all;
 }
 
-export function rank(all, goal) {
+export function historyScore(order, orderHistory = []) {
+  let score = 0;
+
+  for (const previous of orderHistory) {
+    if (order.restaurant === previous.restaurantName) {
+      score += 5;
+    }
+
+    if (order.name === previous.mealName) {
+      score += 15;
+    }
+  }
+
+  return Math.min(score, 60);
+}
+
+export function rank(all, goal, orderHistory = []) {
   const mc = Math.max(1, ...all.map((x) => x.cpd));
   const mp = Math.max(1, ...all.map((x) => x.ppd));
+
   all.forEach((x) => {
+    const baseScore = 50 * (x.cpd / mc + x.ppd / mp);
+
+    const dietaryScore = calculateDietaryScore({
+      calories: x.calories,
+      protein: x.protein,
+      carbs: x.carbs,
+      fat: x.fat,
+      fiber: x.fiber,
+      sodium: x.sodium
+    });
+
     x.score =
-      goal === 'price'
-        ? -x.price
-        : goal === 'protein'
-          ? x.ppd
-          : goal === 'calories'
-            ? x.cpd
-            : 50 * (x.cpd / mc + x.ppd / mp);
+      goal === 'personalized'
+        ? baseScore + historyScore(x, orderHistory)
+        : goal === 'dietary'
+          ? dietaryScore ?? -Infinity
+          : goal === 'price'
+            ? -x.price
+            : goal === 'protein'
+              ? x.ppd
+              : goal === 'calories'
+                ? x.cpd
+                : baseScore;
   });
-  return all.sort((a, b) => b.score - a.score || a.price - b.price || a.name.localeCompare(b.name));
+
+  const eligible = goal === 'dietary'
+  ? all.filter((x) => Number.isFinite(x.score))
+  : all;
+
+return eligible.sort(
+  (a, b) => b.score - a.score || a.price - b.price || a.name.localeCompare(b.name)
+);
 }
 
 export function parseMenu(text, restaurant, start) {
@@ -75,17 +132,20 @@ export function parseMenu(text, restaurant, start) {
   });
 }
 
-export function rankedOrders(menu, selected, budgetDollars, minimum, combos, goal) {
+export function rankedOrders(menu, selected, budgetDollars, minimum, combos, goal, orderHistory = []) {
   const raw = Number(budgetDollars);
   const budget = Number.isFinite(raw) ? Math.max(0, Math.round(raw * 100)) : 0;
   const items = menu.filter((x) => selected.has(x.restaurant));
-  return rank(orders(items, budget, Number(minimum), combos), goal);
+  return rank(orders(items, budget, Number(minimum), combos), goal, orderHistory);
 }
 
 export function ratioLabel(x, goal) {
   if (goal === 'protein') return x.ppd.toFixed(1) + 'g protein / $';
   if (goal === 'calories') return Math.round(x.cpd) + ' cal / $';
   if (goal === 'price') return money(x.price) + ' total';
+  if (goal === 'personalized') {
+  return Math.round(x.score) + ' personalized score';
+}
   return Math.round(x.score) + '/100 value score';
 }
 
@@ -94,11 +154,26 @@ export const WINNER_LABELS = {
   protein: 'MOST PROTEIN PER DOLLAR',
   calories: 'MOST CALORIES PER DOLLAR',
   price: 'LOWEST PRICE',
+  personalized: 'RECOMMENDED FOR YOU',
+  dietary: 'BEST DIETARY SCORE',
 };
 
 export function winnerMetric(w, goal) {
+  if (goal === 'dietary') {
+  return {
+    value: Number(w.score).toFixed(1),
+    label: 'dietary score'
+  };
+}
+
   if (goal === 'protein') return { value: w.ppd.toFixed(1) + 'g', label: 'protein per dollar' };
   if (goal === 'calories') return { value: Math.round(w.cpd), label: 'calories per dollar' };
   if (goal === 'price') return { value: money(w.price), label: 'order total' };
+  if (goal === 'personalized') {
+  return {
+    value: Math.round(w.score),
+    label: 'personalized score'
+  };
+}
   return { value: Math.round(w.score) + '/100', label: 'balanced value score' };
 }

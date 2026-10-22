@@ -33,6 +33,20 @@ async function loadDatabase() {
   catch (error) { if (error.code !== 'ENOENT') throw error; await persist(); }
   if (!Array.isArray(database.users)) database.users = [];
   if (!Array.isArray(database.sessions)) database.sessions = [];
+
+  for (const user of database.users) {
+  if (!user.recommendationPreferences) {
+    user.recommendationPreferences = {
+      budget: 10,
+      goal: 'value',
+      excludedAllergens: [],
+    };
+  }
+
+  if (!Array.isArray(user.orderHistory)) {
+    user.orderHistory = [];
+  }
+}
 }
 
 async function persist() {
@@ -191,6 +205,143 @@ async function sendOptInText(phone, username) {
 
 async function handleApi(request, response, url) {
   const { pathname } = url;
+
+    if (request.method === 'PUT' && pathname === '/api/recommendations/preferences') {
+  const user = authenticate(request);
+
+  if (!user) {
+    return sendJson(response, 401, {
+      error: 'Log in to save recommendation preferences.'
+    });
+  }
+
+  const data = await readJson(request);
+
+  const budget = Number(data.budget);
+  const allowedGoals = ['value', 'dietary', 'personalized'];
+
+  if (!Number.isFinite(budget) || budget <= 0 || budget > 1000) {
+    return sendJson(response, 400, {
+      error: 'Budget must be between $0.01 and $1000.'
+    });
+  }
+
+  if (!allowedGoals.includes(data.goal)) {
+    return sendJson(response, 400, {
+      error: 'Invalid recommendation goal.'
+    });
+  }
+
+  if (
+    !Array.isArray(data.excludedAllergens) ||
+    data.excludedAllergens.length > 30 ||
+    !data.excludedAllergens.every(
+      allergen => typeof allergen === 'string' &&
+        allergen.trim().length > 0 &&
+        allergen.length <= 50
+    )
+  ) {
+    return sendJson(response, 400, {
+      error: 'Invalid allergen preferences.'
+    });
+  }
+
+  user.recommendationPreferences = {
+    budget,
+    goal: data.goal,
+    excludedAllergens: [...new Set(
+      data.excludedAllergens.map(allergen => allergen.trim().toLowerCase())
+    )]
+  };
+
+  await persist();
+
+  return sendJson(response, 200, {
+    preferences: user.recommendationPreferences
+  });
+}
+///////////////////////////////
+
+if (request.method === 'GET' && pathname === '/api/recommendations/preferences') {
+  const user = authenticate(request);
+
+  if (!user) {
+    return sendJson(response, 401, {
+      error: 'Log in to view recommendation preferences.'
+    });
+  }
+
+  return sendJson(response, 200, {
+    preferences: user.recommendationPreferences ?? {
+      budget: 10,
+      goal: 'value',
+      excludedAllergens: []
+    }
+  });
+}
+
+if (request.method === 'GET' && pathname === '/api/recommendations/history') {
+  const user = authenticate(request);
+
+  if (!user) {
+    return sendJson(response, 401, {
+      error: 'Log in to view order history.'
+    });
+  }
+
+  return sendJson(response, 200, {
+    history: user.orderHistory ?? []
+  });
+}
+
+if (request.method === 'POST' && pathname === '/api/recommendations/history') {
+  const user = authenticate(request);
+
+  if (!user) {
+    return sendJson(response, 401, {
+      error: 'Log in to record an order.'
+    });
+  }
+
+  const data = await readJson(request);
+
+  const mealName = String(data.mealName ?? '').trim();
+  const restaurantName = String(data.restaurantName ?? '').trim();
+  const category = String(data.category ?? '').trim();
+
+  if (
+    !mealName || mealName.length > 150 ||
+    !restaurantName || restaurantName.length > 150 ||
+    !category || category.length > 100
+  ) {
+    return sendJson(response, 400, {
+      error: 'A valid meal name, restaurant name, and category are required.'
+    });
+  }
+
+  const order = {
+    id: randomBytes(16).toString('hex'),
+    mealName,
+    restaurantName,
+    category,
+    orderedAt: new Date().toISOString()
+  };
+
+  if (!Array.isArray(user.orderHistory)) {
+    user.orderHistory = [];
+  }
+
+  user.orderHistory.push(order);
+
+  await persist();
+
+  return sendJson(response, 201, {
+    order
+  });
+}
+
+////////////////////
+
   if (request.method === 'GET' && pathname === '/api/auth/me') {
     const user = authenticate(request);
     return sendJson(response, 200, { profile: user ? publicProfile(user) : null });
@@ -220,6 +371,14 @@ async function handleApi(request, response, url) {
       phone, textUpdates, smsConsentAt: textUpdates ? new Date().toISOString() : null,
       limitRecommendations: true, radiusMiles: '5', emailVerified: false,
       verificationHash: digest(verifyToken), verificationExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
+
+      recommendationPreferences: {
+  budget: 10,
+  goal: 'value',
+  excludedAllergens: [],
+},
+orderHistory: [],
+
       createdAt: new Date().toISOString(),
     };
     let delivery;
