@@ -61,15 +61,15 @@ export default function AccountPage() {
       <div className="h-full w-full space-y-4 border-black">
         <h2 className="text-lg font-semibold text-[#172b25] py-4 border-b border-[#dfe5df]">Your Account</h2>
         <div className="w-full py-4 border-b border-[#dfe5df]">
-          <h3 className="text-md font-medium text-[#172b25]">Name</h3>
+          <h3 className="text-md font-bold text-[#172b25]">Name</h3>
           <p>Sample Name</p>
         </div>
         <div className="w-full py-4 border-b border-[#dfe5df]">
-          <h3 className="text-md font-medium text-[#172b25]">Email</h3>
+          <h3 className="text-md font-bold text-[#172b25]">Email</h3>
           <p>sample@example.com</p>
         </div>
         <div className="w-full py-4 border-b border-[#dfe5df]">
-          <h3 className="text-md font-medium text-[#172b25]">Linked Accounts</h3>
+          <h3 className="text-md font-bold text-[#172b25]">Linked Accounts</h3>
           <li className="flex flex-col space-y-2 mt-2 items-center">
             <span className="flex flex-row items-center text-[#172b25] space-x-2 px-3 py-3 text-sm font-medium rounded-lg transition-colors text-left w-full bg-[#f6f8f5] text-[#172b25]">
               <FcGoogle className="inline-block mr-2" size={32} />
