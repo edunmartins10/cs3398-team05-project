@@ -1,7 +1,7 @@
    import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js';
    import './Results.css';
 
-function Winner({ order, goal, budgetCents, distance, onOrder }) {
+function Winner({ order, goal, budgetCents, distance, onRecordOrder }) {
   const metric = winnerMetric(order, goal);
   return (
     <article className="winner">
@@ -62,7 +62,13 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
         {!list.length ? (
           <div className="empty">
             <h3>No orders fit just yet.</h3>
-            <p>{profile?.limitRecommendations ? 'Try a wider recommendation distance, or turn off distance limits in Account settings.' : 'Try a higher budget, a lower calorie minimum, or select another restaurant.'}</p>
+            <p>
+  {allergenRestrictionsActive
+    ? 'No meals meet your current filters and allergen restrictions. Meals with missing allergen information are excluded for safety. Try adjusting your filters or reviewing your allergen settings.'
+    : profile?.limitRecommendations
+      ? 'Try a wider recommendation distance, or turn off distance limits in Account settings.'
+      : 'Try a higher budget, a lower calorie minimum, or select another restaurant.'}
+</p>
           </div>
         ) : (
           <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} onOrder={onOrder} />
