@@ -1,4 +1,5 @@
-import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js';
+   import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js';
+   import './Results.css';
 
 function Winner({ order, goal, budgetCents, distance, onRecordOrder }) {
   const metric = winnerMetric(order, goal);
@@ -37,21 +38,13 @@ function Winner({ order, goal, budgetCents, distance, onRecordOrder }) {
         {order.source === 'sample'
           ? 'Check local menu prices before ordering.'
           : 'Based on the prices and nutrition you entered.'}
-          </p>
-
-      {onRecordOrder && (
-        <button
-          type="button"
-          onClick={() => onRecordOrder(order)}
-        >
-          Record Order
-        </button>
-      )}
+      </p>
+      <button type="button" className="mt-4 rounded-md border hover:bg-[#13543c] transition duration-300 px-4 py-2 " onClick={() => onOrder(order)}>Add to Order</button>
     </article>
   );
 }
 
-export default function Results({ list, goal, budgetDollars, distances = {}, profile, allergenRestrictionsActive = false, onRecordOrder}) {
+export default function Results({ list, goal, budgetDollars, distances = {}, profile, onOrder }) {
   const raw = Number(budgetDollars);
   const budgetCents = Number.isFinite(raw) ? Math.max(0, Math.round(raw * 100)) : 0;
   const rest = list.slice(1, 7);
@@ -78,7 +71,7 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
 </p>
           </div>
         ) : (
-          <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} onRecordOrder={onRecordOrder} />
+          <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} onOrder={onOrder} />
         )}
       </div>
       {list.length > 0 && (
@@ -102,6 +95,7 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
                     <span>{x.protein}g protein</span>
                     <span className="ratio">{ratioLabel(x, goal)}</span>
                   </div>
+                  <button type="button" className="rounded-md border-[#dfe5df] bg-gray-100 transition-all durration-300 hover:bg-gray-100 mt-2 p-2 border" onClick={() => onOrder(x)}>Add to Order</button>
                 </div>
                 <div className="price">{money(x.price)}</div>
               </article>

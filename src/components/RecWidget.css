@@ -1,0 +1,9 @@
+.rec-widget{position:fixed;right:16px;bottom:16px;width:180px;background:var(--green);color:#fff;border-radius:12px;box-shadow:0 8px 28px #0003;z-index:20;overflow:hidden}
+.rec-toggle{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:transparent;color:var(--lime);font:700 10px 'DM Sans',sans-serif;letter-spacing:.8px;padding:10px 12px;text-align:left}
+.rec-body{padding:0 12px 12px}
+.rec-restaurant{font-size:11px;color:#d1e9dc}
+.rec-name{font:500 14px/1.25 'Space Grotesk',sans-serif;margin:2px 0 8px}
+.rec-metric strong{display:block;font:600 20px 'Space Grotesk',sans-serif}
+.rec-metric span{font-size:11px;color:#d2e5db}
+.rec-stats{margin-top:8px;font-size:11px;color:#d2e5db}
+@media(max-width:600px){.rec-widget{right:12px;width:190px}}
