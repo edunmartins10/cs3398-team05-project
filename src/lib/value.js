@@ -134,15 +134,28 @@ export function parseMenu(text, restaurant, start) {
     if (price <= 0 || price > 100000 || calories > 10000 || protein > 1000 || p[0].length > 150) {
       throw Error('Line ' + (i + 1) + ': check the price, nutrition, or item-name length.');
     }
-    return { id: start + i, restaurant, name: p[0], price, calories, protein, source: 'custom' };
+    return { id: start + i, restaurant, name: p[0], price, calories, protein, allergens: [], source: 'custom' };
   });
 }
 
-export function rankedOrders(menu, selected, budgetDollars, minimum, combos, goal, orderHistory = []) {
+function itemMatchesRestrictions(item, selectedAllergens = []) {
+  if (!selectedAllergens.length) return true;
+  const allergens = new Set(item.allergens || []);
+  return !selectedAllergens.some((restriction) => {
+    if (restriction === 'lactose') return allergens.has('dairy');
+    if (restriction === 'vegetarian') return allergens.has('red-meat') || allergens.has('fish') || allergens.has('shellfish');
+    if (restriction === 'vegan') return allergens.has('dairy') || allergens.has('egg') || allergens.has('red-meat') || allergens.has('fish') || allergens.has('shellfish');
+    return allergens.has(restriction);
+  });
+}
+
+export function rankedOrders(menu, selected, budgetDollars, minimum, combos, goal, selectedAllergens = []) {
   const raw = Number(budgetDollars);
   const budget = Number.isFinite(raw) ? Math.max(0, Math.round(raw * 100)) : 0;
-  const items = menu.filter((x) => selected.has(x.restaurant));
-  return rank(orders(items, budget, Number(minimum), combos), goal, orderHistory);
+  const items = menu
+    .filter((x) => selected.has(x.restaurant))
+    .filter((x) => itemMatchesRestrictions(x, selectedAllergens));
+  return rank(orders(items, budget, Number(minimum), combos), goal);
 }
 
 export function ratioLabel(x, goal) {
