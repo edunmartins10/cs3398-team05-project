@@ -1,6 +1,7 @@
-import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js';
+   import { money, ratioLabel, WINNER_LABELS, winnerMetric } from '../lib/value.js';
+   import './Results.css';
 
-function Winner({ order, goal, budgetCents, distance }) {
+function Winner({ order, goal, budgetCents, distance, onRecordOrder }) {
   const metric = winnerMetric(order, goal);
   return (
     <article className="winner">
@@ -38,11 +39,12 @@ function Winner({ order, goal, budgetCents, distance }) {
           ? 'Check local menu prices before ordering.'
           : 'Based on the prices and nutrition you entered.'}
       </p>
+      <button type="button" className="mt-4 rounded-md border hover:bg-[#13543c] transition duration-300 px-4 py-2 " onClick={() => onOrder(order)}>Add to Order</button>
     </article>
   );
 }
 
-export default function Results({ list, goal, budgetDollars, distances = {}, profile }) {
+export default function Results({ list, goal, budgetDollars, distances = {}, profile, onOrder }) {
   const raw = Number(budgetDollars);
   const budgetCents = Number.isFinite(raw) ? Math.max(0, Math.round(raw * 100)) : 0;
   const rest = list.slice(1, 7);
@@ -60,10 +62,16 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
         {!list.length ? (
           <div className="empty">
             <h3>No orders fit just yet.</h3>
-            <p>{profile?.limitRecommendations ? 'Try a wider recommendation distance, or turn off distance limits in Account settings.' : 'Try a higher budget, a lower calorie minimum, or select another restaurant.'}</p>
+            <p>
+  {allergenRestrictionsActive
+    ? 'No meals meet your current filters and allergen restrictions. Meals with missing allergen information are excluded for safety. Try adjusting your filters or reviewing your allergen settings.'
+    : profile?.limitRecommendations
+      ? 'Try a wider recommendation distance, or turn off distance limits in Account settings.'
+      : 'Try a higher budget, a lower calorie minimum, or select another restaurant.'}
+</p>
           </div>
         ) : (
-          <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} />
+          <Winner order={list[0]} goal={goal} budgetCents={budgetCents} distance={distances[list[0].restaurant]} onOrder={onOrder} />
         )}
       </div>
       {list.length > 0 && (
@@ -87,6 +95,7 @@ export default function Results({ list, goal, budgetDollars, distances = {}, pro
                     <span>{x.protein}g protein</span>
                     <span className="ratio">{ratioLabel(x, goal)}</span>
                   </div>
+                  <button type="button" className="rounded-md border-[#dfe5df] bg-gray-100 transition-all durration-300 hover:bg-gray-100 mt-2 p-2 border" onClick={() => onOrder(x)}>Add to Order</button>
                 </div>
                 <div className="price">{money(x.price)}</div>
               </article>

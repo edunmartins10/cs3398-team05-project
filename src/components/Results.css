@@ -1,0 +1,4 @@
+   .order-button{margin-top:14px;border:1px solid var(--green);background:transparent;color:var(--green);border-radius:20px;padding:8px 14px;font:600 13px 'DM Sans',sans-serif}
+   .order-button:hover{background:var(--green);color:#fff}
+   .winner .order-button{border-color:var(--lime);background:var(--lime);color:var(--ink)}
+   .winner .order-button:hover{background:#fff;border-color:#fff;color:var(--ink)}

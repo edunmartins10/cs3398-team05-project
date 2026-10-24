@@ -33,6 +33,8 @@ export default function Filters({
         <option value="protein">Protein per dollar</option>
         <option value="calories">Calories per dollar</option>
         <option value="price">Lowest price</option>
+        <option value="dietary">Dietary score</option>
+        <option value="personalized">Personalized recommendations</option>
       </select>
 
       <label className="control-title" htmlFor="minimum">Minimum calories</label>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const radii = [5, 10, 15, 20, 'infinity'];
 
-export default function AccountDialog({ open, onClose, profile, onSave, onSignOut }) {
+export default function AccountDialog({ open, onClose, profile, recommendationPreferences, onSave, onSignOut }) {
   const ref = useRef(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -21,6 +21,17 @@ export default function AccountDialog({ open, onClose, profile, onSave, onSignOu
         textUpdates: form.get('textUpdates') === 'on',
         limitRecommendations: form.get('limitRecommendations') === 'on',
         radiusMiles: form.get('radiusMiles'),
+
+recommendationPreferences: {
+  budget: Number(form.get('recommendationBudget')),
+  goal: form.get('recommendationGoal'),
+  excludedAllergens: String(form.get('excludedAllergens') || '')
+    .split(',')
+    .map(allergen => allergen.trim().toLowerCase())
+    .filter(Boolean)
+},
+
+
       });
       setSaved('Settings saved.');
     } catch (err) { setError(err.message); }
@@ -28,7 +39,7 @@ export default function AccountDialog({ open, onClose, profile, onSave, onSignOu
   }
 
   return (
-    <dialog ref={ref} className="account-dialog" onClose={onClose} onCancel={onClose}>
+    <dialog ref={ref} className="account-dialog absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" onClose={onClose} onCancel={onClose}>
       <form onSubmit={submit}>
         <div className="dialoghead"><div><div className="eyebrow">ACCOUNT SETTINGS</div><h2>Hi, {profile.username}</h2></div><button type="button" className="close" onClick={onClose} aria-label="Close">×</button></div>
         <p className="profile-email">{profile.email} <span className="verified-label">Email verified</span></p>
@@ -46,6 +57,53 @@ export default function AccountDialog({ open, onClose, profile, onSave, onSignOu
           </select>
           <p className="fine">Distances use approximate ZIP and sample restaurant locations. Imported menus can include a restaurant ZIP for a distance estimate.</p>
         </section>
+
+        <section className="recommendation-settings">
+  <div className="eyebrow">RECOMMENDATION PREFERENCES</div>
+
+  <label htmlFor="recommendationBudget">Meal budget ($)</label>
+  <input
+    id="recommendationBudget"
+    name="recommendationBudget"
+    type="number"
+    min="0.01"
+    max="1000"
+    step="0.01"
+    defaultValue={recommendationPreferences?.budget ?? 10}
+    required
+  />
+
+  <label htmlFor="recommendationGoal">Recommendation goal</label>
+  <select
+    id="recommendationGoal"
+    name="recommendationGoal"
+    defaultValue={recommendationPreferences?.goal ?? 'value'}
+  >
+    <option value="value">Best value</option>
+    <option value="dietary">Dietary score</option>
+    <option value="personalized">Personalized</option>
+  </select>
+
+  <label htmlFor="excludedAllergens">
+    Excluded allergens (separate with commas)
+  </label>
+  <input
+    id="excludedAllergens"
+    name="excludedAllergens"
+    type="text"
+    placeholder="milk, wheat, peanuts"
+    defaultValue={
+      recommendationPreferences?.excludedAllergens?.join(', ') ?? ''
+    }
+  />
+
+  <p className="fine">
+    Meals without allergen information will be excluded when you set
+    allergen restrictions. Always verify ingredients and cross-contact
+    risks with the restaurant.
+  </p>
+</section>
+
         {saved && <div className="form-message" role="status">{saved}</div>}
         {error && <div className="form-error" role="alert">{error}</div>}
         <button className="primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save account settings →'}</button>

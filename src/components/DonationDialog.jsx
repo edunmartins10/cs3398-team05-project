@@ -25,7 +25,7 @@ export default function DonationDialog({ open, onClose, onError }) {
   }
 
   return (
-    <dialog ref={ref} className="donation-dialog" onClose={onClose} onCancel={onClose}>
+    <dialog ref={ref} className="donation-dialog absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" onClose={onClose} onCancel={onClose}>
       <form onSubmit={submit}>
         <div className="dialoghead"><div><div className="eyebrow">KEEP BITEWISE COOKING</div><h2>Leave a tip</h2></div><button type="button" className="close" onClick={onClose} aria-label="Close">×</button></div>
         <p>Like the project? Make a one-time contribution to help support Bitewise.</p>
