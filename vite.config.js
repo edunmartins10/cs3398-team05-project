@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+  publicDir: 'Frontend/public',
   plugins: [
     react(),
     tailwindcss()

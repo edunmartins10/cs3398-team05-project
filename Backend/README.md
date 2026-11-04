@@ -2,17 +2,17 @@
 
 The contents of this directory include our backend logic (such as database, services, persistence, middleware, route handlers, etc.)
 
-## server/config/
+## Backend/config/
 
-## server/db/
+## Backend/db/
 
-## server/middleware/
+## Backend/middleware/
 
-## server/services/
+## Backend/services/
 
-## server/routes/
+## Backend/routes/
 
-### server/routes/account/
+### Backend/routes/account/
 Order history is handled by `orders.js` at `/api/auth/orders`.
 
 ## server.js

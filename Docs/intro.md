@@ -20,10 +20,10 @@ npm run preview
 
 ## Source layout
 
-- `src/App.jsx`: filters, ranking state, and menu import
-- `src/lib/value.js`: combinations, scoring, and pasted-menu parsing
-- `src/data/sampleMenu.js`: illustrative sample items
-- `src/index.css`: layout, colors, and responsive styles
+- `Frontend/App.jsx`: filters, ranking state, and menu import
+- `Frontend/lib/value.js`: combinations, scoring, and pasted-menu parsing
+- `Frontend/data/sampleMenu.js`: illustrative sample items
+- `Frontend/index.css`: layout, colors, and responsive styles
 - `public/food.jpg`: hero image
 
 ## Data and behavior
