@@ -195,10 +195,20 @@ export default function HomePage() {
         
         <div className="workspace">
           <Filters
-            budget={budget} onBudgetChange={setBudget} goal={goal} onGoalChange={setGoal}
-            minimum={minimum} onMinimumChange={setMinimum} restaurants={names} itemCounts={itemCounts}
-            selected={selected} onToggleRestaurant={toggleRestaurant} combos={combos}
-            onCombosChange={setCombos} onReset={resetFilters}
+            budget={budget} 
+            onBudgetChange={setBudget} 
+            goal={goal}
+            onGoalChange={setGoal}
+            minimum={minimum} 
+            onMinimumChange={setMinimum} 
+            restaurants={names} 
+            itemCounts={itemCounts}
+            selected={selected} 
+            onToggleRestaurant={toggleRestaurant} 
+            combos={combos}
+            onCombosChange={setCombos} 
+            onReset={resetFilters}
+            allergens={profile?.allergens || []}
           />
           <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} onOrder={setOrderItem} />
         </div>

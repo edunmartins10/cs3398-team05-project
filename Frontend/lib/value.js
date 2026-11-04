@@ -1,4 +1,4 @@
-import { calculateDietaryScore } from '../algorithms/dietaryScore.js';
+import { calculateDietaryScore } from './dietaryScore.js';
 
 export const money = (cents) => '$' + (cents / 100).toFixed(2);
 
