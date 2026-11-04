@@ -39,6 +39,12 @@ router.get('/me', async (req, res) => {
       textUpdates: metadata.textUpdates === true,
       limitRecommendations: metadata.limitRecommendations !== false,
       radiusMiles: metadata.radiusMiles || '5',
+      recommendationPreferences: metadata.recommendationPreferences || null,
+      notifications: metadata.notifications || null,
+      createdAt: user.created_at || null,
+      lastSignInAt: user.last_sign_in_at || null,
+      emailConfirmedAt: user.email_confirmed_at || null,
+      linkedProviders: (user.identities || []).map((identity) => identity.provider),
     },
   });
 });

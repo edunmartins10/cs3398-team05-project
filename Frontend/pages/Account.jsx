@@ -1,297 +1,236 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Header from '../components/Header.jsx';
 import { User, Phone, Bell, RotateCcwClock, Save, Settings2, Shield } from 'lucide-react';
-import { FcGoogle } from "react-icons/fc";
-import { FaFacebook, FaFacebookSquare } from "react-icons/fa";
-import { api, postJson, putJson } from '../lib/api.js';
+import { api, postJson } from '../lib/api.js';
 import Footer from '../components/Footer.jsx';
 import OrderHistory from '../components/OrderHistory.jsx';
+
+const tabs = [
+  { id: 'account', label: 'Account', Icon: User },
+  { id: 'order_history', label: 'Order History', Icon: RotateCcwClock },
+  { id: 'saved_orders', label: 'Saved Orders', Icon: Save },
+  { id: 'preferences', label: 'Preferences', Icon: Settings2 },
+  { id: 'address_and_phone', label: 'Address & Phone', Icon: Phone },
+  { id: 'notifications', label: 'Notifications', Icon: Bell },
+  { id: 'security', label: 'Password & Security', Icon: Shield },
+];
+
+function display(value) {
+  if (value === null || value === undefined || value === '') return 'Not provided';
+  return String(value);
+}
+
+function displayDate(value) {
+  if (!value) return 'Not available';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleString();
+}
+
+function DataRow({ label, value }) {
+  return (
+    <div className="border-b border-[#dfe5df] py-4 last:border-b-0">
+      <dt className="font-bold text-[#172b25]">{label}</dt>
+      <dd className="mt-1 text-[#63726c]">{value}</dd>
+    </div>
+  );
+}
 
 export default function AccountPage() {
   const [activeTab, setActiveTab] = useState(() => (
     new URLSearchParams(window.location.search).get('tab') === 'order_history' ? 'order_history' : 'account'
   ));
-  const [saved, setSaved] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState('');
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
   const [notice, setNotice] = useState('');
-  const [noticeError, setNoticeError] = useState(false);
-
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    bio: 'Software engineer building web applications.',
-    emailNotifications: true,
-    securityAlerts: true,
-  });
 
   useEffect(() => {
     let active = true;
+
     async function loadAccount() {
       try {
         const data = await api('/api/auth/me');
         if (!active) return;
-        if (data.profile) {
-          setProfile(data.profile);
-          setFormData((prev) => ({
-            ...prev,
-            name: data.profile.username || '',
-            email: data.profile.email || '',
-          }));
+        setProfile(data.profile || null);
+        if (!data.profile) {
+          setOrdersLoading(false);
+          return;
+        }
+
+        try {
           const history = await api('/api/auth/orders');
-          if (active) setOrders(history.orders);
+          if (active) setOrders(history.orders || []);
+        } catch (error) {
+          if (active) setOrdersError(error.message);
+        } finally {
+          if (active) setOrdersLoading(false);
         }
-      } catch (err) {
-        if (active) {
-          setProfile(null);
-          setOrdersError(err.message);
-        }
+      } catch (error) {
+        if (active) setProfileError(error.message);
       } finally {
-        if (active) setOrdersLoading(false);
+        if (active) setProfileLoading(false);
       }
     }
+
     loadAccount();
     return () => { active = false; };
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-  };
-
-  const handleSave = (e) => {
-    e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  };
-
   async function signOut() {
-    try { await postJson('/api/auth/logout', {}); } catch {}
-    setProfile(null);
-    setNotice('You have been logged out.');
+    try {
+      await postJson('/api/auth/logout', {});
+      setProfile(null);
+      setNotice('You have been logged out.');
+      setProfileError('');
+    } catch (error) {
+      setNotice(`Could not log out: ${error.message}`);
+    }
   }
 
-  function Account() {
-    return (
-      <div className="h-full w-full space-y-4 border-black">
-        <h2 className="text-lg font-semibold text-[#172b25] py-4 border-b border-[#dfe5df]">Your Account</h2>
-        <div className="w-full py-4 border-b border-[#dfe5df]">
-          <h3 className="text-md font-bold text-[#172b25]">Name</h3>
-          <p>Sample Name</p>
-        </div>
-        <div className="w-full py-4 border-b border-[#dfe5df]">
-          <h3 className="text-md font-bold text-[#172b25]">Email</h3>
-          <p>sample@example.com</p>
-        </div>
-        <div className="w-full py-4 border-b border-[#dfe5df]">
-          <h3 className="text-md font-bold text-[#172b25]">Linked Accounts</h3>
-          <li className="flex flex-col space-y-2 mt-2 items-center">
-            <span className="flex flex-row items-center text-[#172b25] space-x-2 px-3 py-3 text-sm font-medium rounded-lg transition-colors text-left w-full bg-[#f6f8f5] text-[#172b25]">
-              <FcGoogle className="inline-block mr-2" size={32} />
-              Connect To Google
-            </span>
-            <span className="flex flex-row items-center text-[#172b25] space-x-2 px-3 py-3 text-sm font-medium rounded-lg transition-colors text-left w-full bg-[#f6f8f5] text-[#172b25]">
-              <FaFacebook className="inline-block mr-2 text-[#1877F2]" size={32} />
-              Connect To Facebook
-            </span>
-          </li>
-        </div>
-  
-      </div>
-    )
-  }
-
-  function Security(){
-    return(
-      <div className="h-full w-full space-y-4 border-black">
-        <h2 className="text-lg font-semibold text-[#172b25] py-4 border-b border-[#dfe5df]">Security</h2>
-      </div>
-    )
-  }
-
-  function SavedOrders(){
-    return(
-      <div className="h-full w-full space-y-4 border-black">
-        <h2 className="text-lg font-semibold text-[#172b25] py-4 border-b border-[#dfe5df]">Saved Orders</h2>
-        <h3 className="text-center text-2xl py-4 font-medium text-[#172b25]/100">You Dont Have Any Saved Orders.</h3>
-      </div>
-    )
-
-  }
-
-  function Preferences(){
-	  return(
-      <div className="h-full w-full space-y-4 border-black">
-        <h2 className="text-lg font-semibold text-[#172b25] py-4 border-b border-[#dfe5df]">Preferences</h2>
-        
-      </div>
-    )
-
-  }
-
-  function AddressAndPhone(){
-	  return (
-      <div className="flex flex-col space-y-4 h-full w-full border-black">
-        <h2 className="text-lg font-semibold text-[#172b25] py-4 border-b border-[#dfe5df]">Address and Phone</h2>
-
-        <div className="w-full py-4 border-b border-[#dfe5df]">
-          <h3 className="text-lg font-bold text-[#172b25]">Address</h3>
-          <p>123 Sample Street</p>
-        </div>
-        <div className="w-full py-4 border-b border-[#dfe5df]">
-          <h3 className="text-lg font-bold text-[#172b25]">Phone</h3>
-          <p>(123) 456-7890</p>
-        </div>
-  
-      </div>
-      )
-  }
-
-  function Notifications(){
-
-    return(
-      <div className="h-full w-full space-y-4 border-black">
-        <h2 className="text-lg font-semibold text-[#172b25] py-4 border-b border-[#dfe5df]">Notifications</h2>
-        <label class="check">
-    <input type="checkbox"/>
-    <div className="flex flex-col justify-start">
-      <span className="font-bold text-[#172b25] text-lg">Email Notifications</span>
-      <small>Receive updates about your account and saved items.</small>
-    </div>
-  </label>
-
-  <label class="check">
-    <input type="checkbox"/>
-    <div className="flex flex-col justify-start">
-      <span className="font-bold text-[#172b25] text-lg">Price Drop Alerts</span>
-      <small>Get notified when a tracked item drops in price.</small>
-    </div>
-  </label>
-
-  <label class="check">
-    <input type="checkbox"/>
-    <div className="flex flex-col justify-start">
-      <span className="font-bold text-[#172b25] text-lg">Weekly Summary Digest</span>
-      <small>A weekly recap of activity and recommendations.</small>
-    </div>
-  </label>
-      </div>
-    )
-
-  }
+  const providers = [...new Set(profile?.linkedProviders || [])];
+  const recommendationPreferences = profile?.recommendationPreferences;
+  const notifications = profile?.notifications;
 
   return (
     <>
-      <Header
-        profile={profile}
-        onSignOut={signOut}
-      />
+      <Header profile={profile} onSignOut={signOut} />
 
-      <main className="max-w-[1320px] px-[46px] pt-[34px] mx-auto">
-        <div className="border-b border-[#dfe5df] pt-6 mb-8">
-          <h1 className="text-[36px] font-bold tracking-tight text-[#172b25] font-['Space_Grotesk']">
+      <main className="mx-auto max-w-[1320px] px-[46px] pt-[34px]">
+        <div className="mb-8 border-b border-[#dfe5df] pt-6">
+          <h1 className="font-['Space_Grotesk'] text-[36px] font-bold tracking-tight text-[#172b25]">
             Account Settings
           </h1>
-          <p className="text-sm text-[#63726c] mt-1">
-            Manage your personal information, security preferences, and account settings.
+          <p className="mt-1 text-sm text-[#63726c]">
+            View your account information and saved activity.
           </p>
         </div>
 
         {notice && (
-          <div className="flex justify-between items-center mb-[18px] p-[12px_15px] border border-[#cfe0d2] bg-[#eef6ee] rounded-[9px] text-[#28573a] text-sm">
+          <div className="mb-[18px] flex items-center justify-between rounded-[9px] border border-[#cfe0d2] bg-[#eef6ee] p-[12px_15px] text-sm text-[#28573a]" role="status">
             <span>{notice}</span>
-            <button type="button" onClick={() => setNotice('')} className="text-xl">×</button>
+            <button type="button" onClick={() => setNotice('')} className="text-xl" aria-label="Dismiss">×</button>
           </div>
         )}
 
-        <div className="flex flex-row justify-around gap-9 mb-12 h-full">
-          {/* Sidebar */}
-          <nav className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-1 overflow-x-auto pb-4 md:pb-0 bg-white border border-[#dfe5df] rounded-[16px] p-4 h-[480px] overflow-y-visible">
-            <button
-              key={"account"}
-              className={`flex items-center space-x-2 px-3 py-3 text-sm font-medium rounded-lg transition-colors text-left w-full 
-                  ${ activeTab === 'account' ? 'bg-[#edf3e9] text-[#176447] font-bold' : 'text-[#63726c] hover:text-[#172b25] hover:bg-[#f6f8f5]'}`}
-              onClick={() => setActiveTab('account')}
-            >
-              <User />
-              <span>Account</span>
-            </button>
+        {profileError && (
+          <p className="mb-4 rounded-lg border border-[#e7c9c4] bg-[#fff4f1] p-3 text-sm text-[#8a2f23]" role="alert">
+            Could not load your account: {profileError}
+          </p>
+        )}
 
-            <button
-              className={`flex items-center space-x-2 px-3 py-3 text-sm font-medium rounded-lg transition-colors text-left w-full 
-                  ${ activeTab === 'order_history' ? 'bg-[#edf3e9] text-[#176447] font-bold' : 'text-[#63726c] hover:text-[#172b25] hover:bg-[#f6f8f5]'}`}
-              onClick={() => setActiveTab('order_history')}
-            >
-              <RotateCcwClock />
-              <span>Order History</span>
-            </button>
-
-            <button
-            className={`flex items-center space-x-2 px-3 py-3 text-sm font-medium rounded-lg transition-colors text-left w-full 
-                  ${ activeTab === 'saved_orders' ? 'bg-[#edf3e9] text-[#176447] font-bold' : 'text-[#63726c] hover:text-[#172b25] hover:bg-[#f6f8f5]'}`}
-                  onClick={() => setActiveTab('saved_orders')}
-                  >
-              <Save />
-              <span>Saved Orders</span>
-            </button>
-
-            <button
-            className={`flex items-center space-x-2 px-3 py-3 text-sm font-medium rounded-lg transition-colors text-left w-full 
-                  ${activeTab === 'preferences' ? 'bg-[#edf3e9] text-[#176447] font-bold' : 'text-[#63726c] hover:text-[#172b25] hover:bg-[#f6f8f5]'}`}
-                  onClick={() => setActiveTab('preferences')}
-                  >
-              <Settings2 />
-              <span>Preferences</span>
-            </button>
-
-            <button
-            className={`flex items-center space-x-2 px-3 py-3 text-sm font-medium rounded-lg transition-colors text-left w-full 
-                  ${activeTab === 'address_and_phone' ? 'bg-[#edf3e9] text-[#176447] font-bold' : 'text-[#63726c] hover:text-[#172b25] hover:bg-[#f6f8f5]'}`}
-                  onClick={() => setActiveTab('address_and_phone')}
-                  >
-              <Phone />
-              <span>Address & Phone</span>
-            </button>
-
-            <button
-            className={`flex items-center space-x-2 px-3 py-3 text-sm font-medium rounded-lg transition-colors text-left w-full 
-                  ${ activeTab === 'notifications' ? 'bg-[#edf3e9] text-[#176447] font-bold' : 'text-[#63726c] hover:text-[#172b25] hover:bg-[#f6f8f5]'}`}
-                  onClick={() => setActiveTab('notifications')}
-                  >
-              <Bell />
-              <span>Notifications</span>
-            </button>
-
-            <button
-              className={`flex items-center space-x-2 px-3 py-3 text-sm font-medium rounded-lg transition-colors text-left w-full 
-                ${ activeTab === 'security' ? 'bg-[#edf3e9] text-[#176447] font-bold' : 'text-[#63726c] hover:text-[#172b25] hover:bg-[#f6f8f5]'}`}
-                  onClick={() => setActiveTab("security")}
-                  >
-              <Shield />
-              <span>Password & Security</span>
-            </button>
-
+        <div className="mb-12 flex h-full flex-row justify-around gap-9">
+          <nav aria-label="Account settings" className="flex h-[480px] flex-row space-x-2 overflow-x-auto overflow-y-visible rounded-[16px] border border-[#dfe5df] bg-white p-4 pb-4 md:flex-col md:space-x-0 md:space-y-1 md:pb-0">
+            {tabs.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                aria-current={activeTab === id ? 'page' : undefined}
+                className={`flex w-full items-center space-x-2 rounded-lg px-3 py-3 text-left text-sm font-medium transition-colors ${
+                  activeTab === id
+                    ? 'bg-[#edf3e9] font-bold text-[#176447]'
+                    : 'text-[#63726c] hover:bg-[#f6f8f5] hover:text-[#172b25]'
+                }`}
+                onClick={() => setActiveTab(id)}
+              >
+                <Icon aria-hidden="true" />
+                <span>{label}</span>
+              </button>
+            ))}
           </nav>
 
-          {/* Main Form Content */}
-          <main className="flex-1 bg-white border border-[#dfe5df] rounded-[16px] p-6 h-[480px] overflow-y-auto">
-              
-            {activeTab === 'account' && (<Account />)}
-	          {activeTab === 'order_history' && (
-              <OrderHistory profile={profile} orders={orders} loading={ordersLoading} error={ordersError} />
+          <section className="h-[480px] flex-1 overflow-y-auto rounded-[16px] border border-[#dfe5df] bg-white p-6">
+            {profileLoading ? (
+              <p className="py-4 text-center text-[#63726c]" role="status">Loading your account…</p>
+            ) : !profile ? (
+              <div>
+                <h2 className="border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Account</h2>
+                <p className="py-4 text-[#63726c]">Create an account to view your account information.</p>
+              </div>
+            ) : (
+              <>
+                {activeTab === 'account' && (
+                  <div>
+                    <h2 className="border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Your Account</h2>
+                    <dl>
+                      <DataRow label="Name" value={display(profile.username)} />
+                      <DataRow label="Email" value={display(profile.email)} />
+                      <DataRow
+                        label="Linked accounts"
+                        value={providers.length ? providers.map((provider) => provider[0].toUpperCase() + provider.slice(1)).join(', ') : 'No linked accounts'}
+                      />
+                    </dl>
+                  </div>
+                )}
+
+                {activeTab === 'order_history' && (
+                  <OrderHistory profile={profile} orders={orders} loading={ordersLoading} error={ordersError} />
+                )}
+
+                {activeTab === 'saved_orders' && (
+                  <div>
+                    <h2 className="border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Saved Orders</h2>
+                    <p className="py-4 text-[#63726c]">
+                      Separate saved orders are not currently stored for this account. Your completed orders are available in Order History.
+                    </p>
+                  </div>
+                )}
+
+                {activeTab === 'preferences' && (
+                  <div>
+                    <h2 className="border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Preferences</h2>
+                    <dl>
+                      <DataRow label="Limit recommendations by distance" value={profile.limitRecommendations ? 'On' : 'Off'} />
+                      <DataRow label="Recommendation radius" value={profile.radiusMiles === 'infinity' ? 'Any distance' : `${display(profile.radiusMiles)} miles`} />
+                      <DataRow label="Meal budget" value={recommendationPreferences?.budget == null ? 'Not provided' : `$${recommendationPreferences.budget}`} />
+                      <DataRow label="Recommendation goal" value={display(recommendationPreferences?.goal)} />
+                      <DataRow
+                        label="Excluded allergens"
+                        value={Array.isArray(recommendationPreferences?.excludedAllergens) && recommendationPreferences.excludedAllergens.length
+                          ? recommendationPreferences.excludedAllergens.join(', ')
+                          : 'None recorded'}
+                      />
+                    </dl>
+                  </div>
+                )}
+
+                {activeTab === 'address_and_phone' && (
+                  <div>
+                    <h2 className="border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Address and Phone</h2>
+                    <dl>
+                      <DataRow label="Home ZIP code" value={display(profile.zipCode)} />
+                      <DataRow label="Phone" value={display(profile.phone)} />
+                    </dl>
+                  </div>
+                )}
+
+                {activeTab === 'notifications' && (
+                  <div>
+                    <h2 className="border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Notifications</h2>
+                    <dl>
+                      <DataRow label="Text updates" value={profile.textUpdates ? 'Opted in' : 'Not opted in'} />
+                      <DataRow label="Email notifications" value={notifications?.emailNotifications == null ? 'Not configured' : notifications.emailNotifications ? 'On' : 'Off'} />
+                      <DataRow label="Price drop alerts" value={notifications?.priceDropAlerts == null ? 'Not configured' : notifications.priceDropAlerts ? 'On' : 'Off'} />
+                      <DataRow label="Weekly summary" value={notifications?.weeklySummary == null ? 'Not configured' : notifications.weeklySummary ? 'On' : 'Off'} />
+                    </dl>
+                  </div>
+                )}
+
+                {activeTab === 'security' && (
+                  <div>
+                    <h2 className="border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Password and Security</h2>
+                    <dl>
+                      <DataRow label="Email verification" value={profile.emailConfirmedAt ? 'Verified' : 'Not verified'} />
+                      <DataRow label="Account created" value={displayDate(profile.createdAt)} />
+                      <DataRow label="Last sign in" value={displayDate(profile.lastSignInAt)} />
+                    </dl>
+                  </div>
+                )}
+              </>
             )}
-	          {activeTab === 'saved_orders' && (<SavedOrders />)}
-	          {activeTab === 'preferences' && (<Preferences />)}
-	          {activeTab === 'address_and_phone' && (<AddressAndPhone />)}
-	          {activeTab === 'notifications' && (<Notifications />)}
-            {activeTab === 'security' && (<Security />)}
-              
-          </main>
+          </section>
         </div>
 
         <Footer />
