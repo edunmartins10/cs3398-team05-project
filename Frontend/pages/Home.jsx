@@ -5,7 +5,6 @@ import Filters from '../components/Filters.jsx';
 import Results from '../components/Results.jsx';
 import ImportDialog from '../components/ImportDialog.jsx';
 import AuthDialog from '../components/AuthDialog.jsx';
-import AccountDialog from '../components/AccountDialog.jsx';
 import DonationDialog from '../components/DonationDialog.jsx';
 import OrderDialog from '../components/OrderDialog.jsx';
 import RecWidget from '../components/RecWidget.jsx';
@@ -229,16 +228,6 @@ export default function HomePage() {
         onSignedIn={signedIn} 
         initialMessage={notice} 
       />
-
-      {profile && 
-        <AccountDialog 
-          open={accountOpen} 
-          onClose={() => setAccountOpen(false)} 
-          profile={profile} 
-          onSave={saveProfile} 
-          onSignOut={signOut} 
-        />
-      }
 
       <DonationDialog 
         open={donationOpen} 
