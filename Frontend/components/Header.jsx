@@ -1,10 +1,11 @@
+import { Link } from 'react-router-dom';
 import AuthDialog from './AuthDialog.jsx';
 import { useEffect, useState } from 'react';
 import { api, postJson } from '../lib/api.js';
 import { MdAccountCircle } from "react-icons/md";
 import DonationDialog from './DonationDialog.jsx';
-import { FaArrowRotateLeft, FaRegHeart } from "react-icons/fa6";
 import { FaUserCog, FaInfoCircle } from "react-icons/fa";
+import { FaArrowRotateLeft, FaRegHeart } from "react-icons/fa6";
 
 export default function Header() {
   const [profile, setProfile] = useState(null);
@@ -93,25 +94,25 @@ export default function Header() {
               <p className="font-bold text-[#172b25]">Hi {profile.username}</p>
 
               <div className="grid grid-cols-2 gap-2 w-full">
-                <div className="flex flex-col items-center justify-center gap-1 rounded-md border border-[#dfe5df] bg-[#f6f8f5] px-3.5 py-3.5 text-center transition-colors hover:bg-[#edf3e9]">
+                <Link className="flex flex-col items-center justify-center gap-1 rounded-md border border-[#dfe5df] bg-[#f6f8f5] px-3.5 py-3.5 text-center transition-colors hover:bg-[#edf3e9]" to="/account" state={{activeTab: 'order_history'}}>
                   <FaArrowRotateLeft className="size-8 text-[#172b25]" />
                   <span className="text-[13px] text-[#172b25]">Past Orders</span>
-                </div>
+                </Link>
 
-                <div className="flex flex-col items-center justify-center gap-1 rounded-md border border-[#dfe5df] bg-[#f6f8f5] px-3.5 py-3.5 text-center transition-colors hover:bg-[#edf3e9]">
+                <Link className="flex flex-col items-center justify-center gap-1 rounded-md border border-[#dfe5df] bg-[#f6f8f5] px-3.5 py-3.5 text-center transition-colors hover:bg-[#edf3e9]" to="/account" state={{activeTab: 'saved_orders'}}>
                   <FaRegHeart className="size-8 text-[#172b25]" />
                   <span className="text-[13px] text-[#172b25]">Saved</span>
-                </div>
+                </Link>
 
-                <div className="flex flex-col items-center justify-center gap-1 rounded-md border border-[#dfe5df] bg-[#f6f8f5] px-3.5 py-3.5 text-center transition-colors hover:bg-[#edf3e9]">
+                <Link className="flex flex-col items-center justify-center gap-1 rounded-md border border-[#dfe5df] bg-[#f6f8f5] px-3.5 py-3.5 text-center transition-colors hover:bg-[#edf3e9]" to="/account" state={{activeTab: 'account'}}>
                   <FaUserCog className="size-8 text-[#172b25]" />
                   <span className="text-[13px] text-[#172b25]">Account</span>
-                </div>
+                </Link>
 
-                <div className="flex flex-col items-center justify-center gap-1 rounded-md border border-[#dfe5df] bg-[#f6f8f5] px-3.5 py-3.5 text-center transition-colors hover:bg-[#edf3e9]">
+                <Link className="flex flex-col items-center justify-center gap-1 rounded-md border border-[#dfe5df] bg-[#f6f8f5] px-3.5 py-3.5 text-center transition-colors hover:bg-[#edf3e9]" to="/account" state={{activeTab: 'preferences'}}>
                   <FaInfoCircle className="size-8 text-[#172b25]" />
-                  <span className="text-[13px] text-[#172b25]">Help</span>
-                </div>
+                  <span className="text-[13px] text-[#172b25]">Preferences</span>
+                </Link>
 
               </div>
 

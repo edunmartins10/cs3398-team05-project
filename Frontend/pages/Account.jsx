@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import { User, Phone, Bell, RotateCcwClock, Save, Settings2, Shield } from 'lucide-react';
 import { api } from '../lib/api.js';
@@ -36,15 +37,22 @@ function DataRow({ label, value }) {
 }
 
 export default function AccountPage() {
-  const [activeTab, setActiveTab] = useState(() => (
-    new URLSearchParams(window.location.search).get('tab') === 'order_history' ? 'order_history' : 'account'
-  ));
+  const location = useLocation();
+  const requestedTab = location.state?.activeTab;
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState('');
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
+  const [activeTab, setActiveTab] = useState(() => (
+    tabs.some(({ id }) => id === requestedTab) ? requestedTab : 'account'
+  ));
+
+  useEffect(() => {
+    if (tabs.some(({ id }) => id === requestedTab)) setActiveTab(requestedTab);
+  }, [requestedTab]);
+
   useEffect(() => {
     let active = true;
 
