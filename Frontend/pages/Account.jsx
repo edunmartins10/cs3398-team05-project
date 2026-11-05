@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import Header from '../components/Header.jsx';
 import { User, Phone, Bell, RotateCcwClock, Save, Settings2, Shield } from 'lucide-react';
-import { api, postJson } from '../lib/api.js';
+import { api } from '../lib/api.js';
 import Footer from '../components/Footer.jsx';
 import OrderHistory from '../components/OrderHistory.jsx';
-import AuthDialog from '../components/AuthDialog.jsx';
-import DonationDialog from '../components/DonationDialog.jsx';
 
 const tabs = [
   { id: 'account', label: 'Account', Icon: User },
@@ -47,11 +45,6 @@ export default function AccountPage() {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
-  const [notice, setNotice] = useState('');
-  const [authOpen, setAuthOpen] = useState(false);
-  const [donationOpen, setDonationOpen] = useState(false);
-  const [noticeError, setNoticeError] = useState(false);
-
   useEffect(() => {
     let active = true;
 
@@ -84,38 +77,13 @@ export default function AccountPage() {
     return () => { active = false; };
   }, []);
 
-  async function signedIn() {
-    const data = await api('/api/auth/me');
-    setProfile(data.profile);
-    setAuthOpen(false);
-    setNotice(`Welcome back, ${data.profile.username}.`);
-    setNoticeError(false);
-  }
-
-  async function signOut() {
-    try {
-      await postJson('/api/auth/logout', {});
-      setProfile(null);
-      setNotice('You have been logged out.');
-      setProfileError('');
-    } catch (error) {
-      setNotice(`Could not log out: ${error.message}`);
-    }
-  }
-
   const providers = [...new Set(profile?.linkedProviders || [])];
   const recommendationPreferences = profile?.recommendationPreferences;
   const notifications = profile?.notifications;
 
   return (
     <>
-      <Header 
-        profile={profile} 
-        onOpenAuth={() => setAuthOpen(true)} 
-        onOpenAccount={() => setActiveTab('account')}
-        onSignOut={signOut}   
-        onDonate={() => setDonationOpen(true)}
-      />
+      <Header />
 
       <main className="mx-auto max-w-[1320px] px-[46px] pt-[34px]">
         <div className="mb-8 border-b border-[#dfe5df] pt-6">
@@ -126,26 +94,6 @@ export default function AccountPage() {
             View your account information and saved activity.
           </p>
         </div>
-
-        <AuthDialog 
-          className="justify-center items-center"
-          open={authOpen} 
-          onClose={() => setAuthOpen(false)} 
-          onSignedIn={signedIn} 
-          initialMessage={notice} 
-        />
-        <DonationDialog 
-          open={donationOpen}
-          onClose={() => setDonationOpen(false)}
-          onError={(error) => setNotice(`Donation failed: ${error.message}`)}
-        />
-
-        {notice && (
-          <div className="mb-[18px] flex items-center justify-between rounded-[9px] border border-[#cfe0d2] bg-[#eef6ee] p-[12px_15px] text-sm text-[#28573a]" role="status">
-            <span>{notice}</span>
-            <button type="button" onClick={() => setNotice('')} className="text-xl" aria-label="Dismiss">×</button>
-          </div>
-        )}
 
         {profileError && (
           <p className="mb-4 rounded-lg border border-[#e7c9c4] bg-[#fff4f1] p-3 text-sm text-[#8a2f23]" role="alert">

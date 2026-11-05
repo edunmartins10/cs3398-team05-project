@@ -4,8 +4,6 @@ import Intro from '../components/Intro.jsx';
 import Filters from '../components/Filters.jsx';
 import Results from '../components/Results.jsx';
 import ImportDialog from '../components/ImportDialog.jsx';
-import AuthDialog from '../components/AuthDialog.jsx';
-import DonationDialog from '../components/DonationDialog.jsx';
 import OrderDialog from '../components/OrderDialog.jsx';
 import RecWidget from '../components/RecWidget.jsx';
 import { createSampleMenu, dietaryOptions } from '../data/sampleMenu.js';
@@ -25,9 +23,6 @@ export default function HomePage() {
   const [selectedAllergens, setSelectedAllergens] = useState([]);
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState('');
-  const [authOpen, setAuthOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [donationOpen, setDonationOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [notice, setNotice] = useState('');
   const [noticeError, setNoticeError] = useState(false);
@@ -119,39 +114,11 @@ export default function HomePage() {
     }
   }
 
-  async function saveProfile(changes) {
-    const data = await putJson('/api/profile', changes);
-    setProfile(data.profile);
-    setSelectedAllergens(data.profile?.allergens ?? []);
-    setNotice(changes.textUpdates && !data.smsDeliveryConfigured
-      ? 'Your settings are saved. The site owner still needs to connect an SMS provider before text updates can be delivered.'
-      : 'Your account and recommendation settings are saved.');
-    setNoticeError(false);
-  }
-
-  async function signedIn() {
-    const data = await api('/api/auth/me');
-    setProfile(data.profile);
-    setSelectedAllergens(data.profile?.allergens ?? []);
-    setAuthOpen(false);
-    setNotice(`Welcome back, ${data.profile.username}.`);
-    setNoticeError(false);
-  }
-
-  async function signOut() {
-    try { await postJson('/api/auth/logout', {}); } catch { /* Clear the local view even if the network is interrupted. */ }
-    setProfile(null);
-    setSelectedAllergens([]);
-    setNotice('You have been logged out.');
-    setNoticeError(false);
-  }
-
   async function confirmOrder(item) {
     if (!profile) {
       setOrderItem(null);
       setNotice('Log in to save orders to your order history.');
       setNoticeError(false);
-      setAuthOpen(true);
       return;
     }
 
@@ -166,14 +133,7 @@ export default function HomePage() {
 
     return (
     <>
-      <Header
-        onOpenImport={() => { setImportError(''); setImportOpen(true); }}
-        profile={profile}
-        onOpenAuth={() => setAuthOpen(true)}
-        onOpenAccount={() => setAccountOpen(true)}
-        onSignOut={signOut}
-        onDonate={() => setDonationOpen(true)}
-      />
+      <Header />
 
       <main>
         <Intro />
@@ -182,7 +142,7 @@ export default function HomePage() {
           <div className="account-prompt">
             <strong>Make Bitewise yours.</strong>
             <span>Create an account to save your ZIP code, manage travel distance, and opt in to text updates.</span>
-            <button type="button" onClick={() => setAuthOpen(true)}>
+            <button type="button" onClick={() => { window.location.assign('/account'); }}>
               Create account
             </button>
           </div>
@@ -241,19 +201,6 @@ export default function HomePage() {
         onClose={() => setImportOpen(false)} 
         onSubmit={importMenu} 
         error={importError} 
-      />
-      <AuthDialog 
-        className="justify-center items-center"
-        open={authOpen} 
-        onClose={() => setAuthOpen(false)} 
-        onSignedIn={signedIn} 
-        initialMessage={notice} 
-      />
-
-      <DonationDialog 
-        open={donationOpen} 
-        onClose={() => setDonationOpen(false)} 
-        onError={(message) => { setNotice(message); setNoticeError(true); }} 
       />
       <OrderDialog 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
