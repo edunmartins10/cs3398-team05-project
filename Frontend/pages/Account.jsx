@@ -50,6 +50,7 @@ export default function AccountPage() {
   const [notice, setNotice] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
   const [donationOpen, setDonationOpen] = useState(false);
+  const [noticeError, setNoticeError] = useState(false);
 
   useEffect(() => {
     let active = true;
