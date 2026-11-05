@@ -8,7 +8,7 @@ import AuthDialog from '../components/AuthDialog.jsx';
 import DonationDialog from '../components/DonationDialog.jsx';
 import OrderDialog from '../components/OrderDialog.jsx';
 import RecWidget from '../components/RecWidget.jsx';
-import { createSampleMenu } from '../data/sampleMenu.js';
+import { createSampleMenu, dietaryOptions } from '../data/sampleMenu.js';
 import { parseMenu, rankedOrders, restaurantNames } from '../lib/value.js';
 import { api, postJson, putJson } from '../lib/api.js';
 import { distanceMiles, radiusLimit, restaurantLocations } from '../lib/location.js';
@@ -22,6 +22,7 @@ export default function HomePage() {
   const [goal, setGoal] = useState(DEFAULTS.goal);
   const [minimum, setMinimum] = useState(DEFAULTS.minimum);
   const [combos, setCombos] = useState(DEFAULTS.combos);
+  const [selectedAllergens, setSelectedAllergens] = useState([]);
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
@@ -52,12 +53,21 @@ export default function HomePage() {
     });
   }, [menu, profile, distanceByRestaurant]);
   const list = useMemo(
-    () => rankedOrders(visibleMenu, selected, budget, minimum, combos, goal),
-    [visibleMenu, selected, budget, minimum, combos, goal],
+    () => rankedOrders(visibleMenu, selected, budget, minimum, combos, goal, selectedAllergens),
+    [visibleMenu, selected, budget, minimum, combos, goal, selectedAllergens],
   );
 
   useEffect(() => {
-    api('/api/auth/me').then((data) => setProfile(data.profile || null)).catch(() => setProfile(null));
+    api('/api/auth/me')
+      .then((data) => {
+        const nextProfile = data.profile || null;
+        setProfile(nextProfile);
+        setSelectedAllergens(nextProfile?.allergens ?? []);
+      })
+      .catch(() => {
+        setProfile(null);
+        setSelectedAllergens([]);
+      });
     const params = new URLSearchParams(window.location.search);
     const donation = params.get('donation');
     if (donation === 'success') { setNotice('Thanks for supporting Bitewise!'); setNoticeError(false); }
@@ -83,6 +93,7 @@ export default function HomePage() {
     setGoal(DEFAULTS.goal);
     setMinimum(DEFAULTS.minimum);
     setCombos(DEFAULTS.combos);
+    setSelectedAllergens([]);
     setSelected(new Set(menu.map((x) => x.restaurant)));
   }
 
@@ -111,6 +122,7 @@ export default function HomePage() {
   async function saveProfile(changes) {
     const data = await putJson('/api/profile', changes);
     setProfile(data.profile);
+    setSelectedAllergens(data.profile?.allergens ?? []);
     setNotice(changes.textUpdates && !data.smsDeliveryConfigured
       ? 'Your settings are saved. The site owner still needs to connect an SMS provider before text updates can be delivered.'
       : 'Your account and recommendation settings are saved.');
@@ -120,6 +132,7 @@ export default function HomePage() {
   async function signedIn() {
     const data = await api('/api/auth/me');
     setProfile(data.profile);
+    setSelectedAllergens(data.profile?.allergens ?? []);
     setAuthOpen(false);
     setNotice(`Welcome back, ${data.profile.username}.`);
     setNoticeError(false);
@@ -128,6 +141,7 @@ export default function HomePage() {
   async function signOut() {
     try { await postJson('/api/auth/logout', {}); } catch { /* Clear the local view even if the network is interrupted. */ }
     setProfile(null);
+    setSelectedAllergens([]);
     setNotice('You have been logged out.');
     setNoticeError(false);
   }
@@ -194,20 +208,27 @@ export default function HomePage() {
         
         <div className="workspace">
           <Filters
-            budget={budget} 
-            onBudgetChange={setBudget} 
+            budget={budget}
+            onBudgetChange={setBudget}
             goal={goal}
             onGoalChange={setGoal}
-            minimum={minimum} 
-            onMinimumChange={setMinimum} 
-            restaurants={names} 
+            minimum={minimum}
+            onMinimumChange={setMinimum}
+            restaurants={names}
             itemCounts={itemCounts}
-            selected={selected} 
-            onToggleRestaurant={toggleRestaurant} 
+            selected={selected}
+            onToggleRestaurant={toggleRestaurant}
             combos={combos}
-            onCombosChange={setCombos} 
+            onCombosChange={setCombos}
             onReset={resetFilters}
-            allergens={profile?.allergens || []}
+            allergens={dietaryOptions}
+            selectedAllergens={selectedAllergens}
+            onAllergenChange={(allergens) => {
+              setSelectedAllergens(allergens);
+              if (profile) {
+                setProfile((prev) => ({ ...(prev ?? {}), allergens }));
+              }
+            }}
           />
           <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} onOrder={setOrderItem} />
         </div>

@@ -65,8 +65,16 @@ export default function Filters({
           value={selectedAllergens}
           onChange={(e) => onAllergenChange([...e.target.selectedOptions].map((option) => option.value))}
           aria-label="Select dietary restrictions and allergens"
+          className="space-y-1"
         >
-          {allergens.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+          {allergens.map((item) => 
+            <option 
+            className="p-2 rounded-md"
+            key={item.value} 
+            value={item.value}>
+              {item.label}
+            </option>
+          )}
         </select>
         <p className="fine">Hold Ctrl (Windows) or Command (Mac) to select more than one. Recommendations with matching menu data are filtered out.</p>
       </fieldset>
