@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-export default function Header({ onOpenImport, profile, onOpenAuth, onOpenAccount, onSignOut, onDonate }) {
+export default function Header({ onOpenImport, profile, onOpenAuth, onSignOut, onDonate }) {
   return (
     <header>
       <a className="brand" href="./">
