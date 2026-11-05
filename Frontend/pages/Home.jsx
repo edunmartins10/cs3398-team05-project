@@ -207,7 +207,8 @@ export default function HomePage() {
             combos={combos}
             onCombosChange={setCombos} 
             onReset={resetFilters}
-            allergens={profile?.allergens || []}
+            allergens={profile?.allergens || [{value: 1, label: "Allergen 1"}, {value: 2, label: "Allergen 2"}, {value: 3, label: "Allergen 3"}, {value: 4, label: "Allergen 4"}, {value: 5, label: "Allergen 5"}, {value: 6, label: "Allergen 6"}, {value: 7, label: "Allergen 7"}, {value: 8, label: "Allergen 8"}, {value: 9, label: "Allergen 9"}, {value: 10, label: "Allergen 10"}]}
+            onAllergenChange={(allergens) => setProfile((prev) => ({ ...prev, allergens }))}
           />
           <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} onOrder={setOrderItem} />
         </div>

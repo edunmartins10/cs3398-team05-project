@@ -72,6 +72,7 @@ export default function Results({
   distances = {},
   profile,
   onOrder,
+  allergenRestrictionsActive,
 }) {
   const raw = Number(budgetDollars);
   const budgetCents = Number.isFinite(raw)
