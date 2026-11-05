@@ -4,6 +4,8 @@ import { User, Phone, Bell, RotateCcwClock, Save, Settings2, Shield } from 'luci
 import { api, postJson } from '../lib/api.js';
 import Footer from '../components/Footer.jsx';
 import OrderHistory from '../components/OrderHistory.jsx';
+import AuthDialog from '../components/AuthDialog.jsx';
+import DonationDialog from '../components/DonationDialog.jsx';
 
 const tabs = [
   { id: 'account', label: 'Account', Icon: User },
@@ -46,6 +48,8 @@ export default function AccountPage() {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
   const [notice, setNotice] = useState('');
+  const [authOpen, setAuthOpen] = useState(false);
+  const [donationOpen, setDonationOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -79,6 +83,14 @@ export default function AccountPage() {
     return () => { active = false; };
   }, []);
 
+  async function signedIn() {
+    const data = await api('/api/auth/me');
+    setProfile(data.profile);
+    setAuthOpen(false);
+    setNotice(`Welcome back, ${data.profile.username}.`);
+    setNoticeError(false);
+  }
+
   async function signOut() {
     try {
       await postJson('/api/auth/logout', {});
@@ -96,7 +108,13 @@ export default function AccountPage() {
 
   return (
     <>
-      <Header profile={profile} onSignOut={signOut} />
+      <Header 
+        profile={profile} 
+        onOpenAuth={() => setAuthOpen(true)} 
+        onOpenAccount={() => setActiveTab('account')}
+        onSignOut={signOut}   
+        onDonate={() => setDonationOpen(true)}
+      />
 
       <main className="mx-auto max-w-[1320px] px-[46px] pt-[34px]">
         <div className="mb-8 border-b border-[#dfe5df] pt-6">
@@ -107,6 +125,19 @@ export default function AccountPage() {
             View your account information and saved activity.
           </p>
         </div>
+
+        <AuthDialog 
+          className="justify-center items-center"
+          open={authOpen} 
+          onClose={() => setAuthOpen(false)} 
+          onSignedIn={signedIn} 
+          initialMessage={notice} 
+        />
+        <DonationDialog 
+          open={donationOpen}
+          onClose={() => setDonationOpen(false)}
+          onError={(error) => setNotice(`Donation failed: ${error.message}`)}
+        />
 
         {notice && (
           <div className="mb-[18px] flex items-center justify-between rounded-[9px] border border-[#cfe0d2] bg-[#eef6ee] p-[12px_15px] text-sm text-[#28573a]" role="status">
