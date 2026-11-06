@@ -154,17 +154,6 @@ export default function HomePage() {
             <button type="button" onClick={() => setNotice('')} aria-label="Dismiss">×</button>
           </div>
         }
-
-        <div className="demo">
-          <strong>Sample menu mode</strong>
-          <span>Illustrative prices and nutrition, not current restaurant offers. Distances are approximate sample locations. Add your own menu for a real comparison.</span>
-        </div>
-
-        {profile?.limitRecommendations && !profile.latitude && 
-          <div className="notice notice-error">
-            We couldn’t look up that ZIP code, so distance filtering is paused. Update your ZIP in Account settings.
-          </div>
-          }
         
         <div className="workspace">
           <Filters
