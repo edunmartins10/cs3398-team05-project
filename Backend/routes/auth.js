@@ -93,8 +93,10 @@ router.post('/register', async (req, res) => {
 
   const session = data?.session;
   if (!session?.access_token || !Number.isFinite(session.expires_in) || session.expires_in <= 0) {
-    return res.status(409).json({
-      error: 'Registration did not return a session. Check that email confirmation is disabled in Supabase and that this email is not already registered.',
+    return res.status(201).json({
+      ok: true,
+      authenticated: false,
+      message: 'Please verify your email using the confirmation link sent to your inbox before logging in. Check your spam folder if you do not see it.',
     });
   }
 

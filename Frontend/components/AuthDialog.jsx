@@ -20,12 +20,8 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
     const form = new FormData(event.currentTarget);
     try {
       if (mode === 'register') {
-        const email = String(form.get('email') || '').trim().toLowerCase();
-        const confirmEmail = String(form.get('confirmEmail') || '').trim().toLowerCase();
-        if (email !== confirmEmail) throw new Error('The email addresses do not match.');
-        if (form.get('textUpdates') === 'on' && !String(form.get('phone') || '').trim()) throw new Error('Add a phone number or turn off text updates.');
         const result = await postJson('/api/auth/register', {
-          username: form.get('username'), password: form.get('password'), email,
+          username: form.get('username'), password: form.get('password'), email: form.get('email'),
           zipCode: form.get('zipCode'), phone: form.get('phone'), textUpdates: form.get('textUpdates') === 'on',
         });
         if (result.authenticated) {
@@ -57,15 +53,13 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
         {mode === 'register' ? (
           <>
             <label htmlFor="signupUsername">Username</label>
-            <input id="signupUsername" name="username" autoComplete="username" minLength={3} maxLength={24} pattern="[A-Za-z0-9_.-]{3,24}" required placeholder="Choose a username" />
+            <input id="signupUsername" name="username" autoComplete="username" placeholder="Choose a username" />
             <label htmlFor="signupEmail">Email address</label>
-            <input id="signupEmail" name="email" type="email" autoComplete="email" required placeholder="you@example.com" />
-            <label htmlFor="confirmEmail">Confirm email address</label>
-            <input id="confirmEmail" name="confirmEmail" type="email" autoComplete="email" required placeholder="Enter your email again" />
+            <input id="signupEmail" name="email" type="text" autoComplete="email" placeholder="you@example.com" />
             <label htmlFor="signupPassword">Password</label>
-            <input id="signupPassword" name="password" type="password" autoComplete="new-password" minLength={10} required placeholder="At least 10 characters" />
+            <input id="signupPassword" name="password" type="password" autoComplete="new-password" placeholder="Password" />
             <label htmlFor="zipCode">Home ZIP code</label>
-            <input id="zipCode" name="zipCode" inputMode="numeric" autoComplete="postal-code" pattern="\d{5}" maxLength={5} required placeholder="5-digit US ZIP" />
+            <input id="zipCode" name="zipCode" inputMode="numeric" autoComplete="postal-code" placeholder="ZIP code" />
             <p className="fine location-disclosure">Your ZIP code is saved with your account for future location features.</p>
             <label htmlFor="signupPhone">Phone number <span className="optional">optional</span></label>
             <input id="signupPhone" name="phone" type="tel" autoComplete="tel" placeholder="(512) 555-0123" />
@@ -74,15 +68,15 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
         ) : (
           <>
             <label htmlFor="loginEmail">Email address</label>
-            <input id="loginEmail" name="email" type="email" autoComplete="email" required placeholder="you@example.com" />
+            <input id="loginEmail" name="email" type="text" autoComplete="email" placeholder="you@example.com" />
             <label htmlFor="loginPassword">Password</label>
-            <input id="loginPassword" name="password" type="password" autoComplete="current-password" required />
+            <input id="loginPassword" name="password" type="password" autoComplete="current-password" />
           </>
         )}
         {message && <div className="form-message" role="status">{message}</div>}
         {error && <div className="form-error" role="alert">{error}</div>}
         <button className="primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'register' ? 'Create account →' : 'Log in →'}</button>
-        {mode === 'register' && <p className="fine form-footnote">You’ll be signed in as soon as your account is created.</p>}
+        {mode === 'register' && <p className="fine form-footnote">Please verify your email before logging in. Check your inbox and spam folder for the confirmation link.</p>}
       </form>
     </dialog>
   );
