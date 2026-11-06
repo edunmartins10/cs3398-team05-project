@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import AuthDialog from './AuthDialog.jsx';
 import { useEffect, useState } from 'react';
 import { api, postJson } from '../lib/api.js';
@@ -55,9 +55,9 @@ export default function Header() {
   return (
     <>
       <header className="items-center justify-between header">
-        <a className="brand" href="./">
+          <Link className="brand" to="/">
           <span className="brandmark">b.</span>bitewise
-        </a>
+          </Link>
         <span className="headernote">Good food. Smarter spending.</span>
         <nav className="header-actions" aria-label="Main actions">
           <button className="text-button donate-nav" type="button" onClick={() => setDonationOpen(true)}>
@@ -78,6 +78,12 @@ export default function Header() {
 
         </nav>
       </header>
+
+      <nav className="site-nav" aria-label="Main navigation">
+        <NavLink to="/">Home</NavLink>
+        <NavLink to="/faq">FAQ</NavLink>
+        <NavLink to="/account">Account</NavLink>
+      </nav>
 
       {managementMenuOpen && (
         <div

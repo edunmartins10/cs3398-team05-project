@@ -84,6 +84,147 @@ header {
   color: var(--muted);
 }
 
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  min-height: 46px;
+  padding: 0 5.5%;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.site-nav a {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-nav a:hover,
+.site-nav a[aria-current='page'] {
+  color: var(--green);
+}
+
+.site-nav a[aria-current='page'] {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+
+.info-page {
+  max-width: 1320px;
+  min-height: 62vh;
+  margin: 0 auto;
+  padding: 54px 46px 80px;
+}
+
+.faq-page {
+  max-width: 980px;
+}
+
+.info-heading {
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--line);
+}
+
+.info-heading h1,
+.not-found-page h1 {
+  max-width: 760px;
+  margin: 14px 0 10px;
+  font-size: 56px;
+  line-height: 1.05;
+}
+
+.info-lede {
+  max-width: 620px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.faq-list {
+  margin-top: 12px;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 21px 2px;
+  color: var(--ink);
+  font: 600 18px 'Space Grotesk', sans-serif;
+  cursor: pointer;
+  list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-toggle {
+  flex: 0 0 28px;
+  color: var(--green);
+  font: 400 26px 'DM Sans', sans-serif;
+  text-align: center;
+}
+
+.faq-item[open] .faq-toggle {
+  transform: rotate(45deg);
+}
+
+.faq-item > p {
+  max-width: 720px;
+  padding: 0 46px 22px 2px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.not-found-page {
+  display: flex;
+  min-height: 64vh;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.not-found-page h1 {
+  max-width: 650px;
+}
+
+.not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.not-found-actions a {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 17px;
+  border-radius: 6px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.not-found-primary {
+  background: var(--green);
+  color: #fff;
+}
+
+.not-found-secondary {
+  border: 1px solid #cdd6d0;
+  background: #fff;
+  color: var(--ink);
+}
+
 .outline {
   background: white;
   border: 1px solid #cdd6d0;
@@ -524,21 +665,60 @@ summary {
   margin-top: 13px;
 }
 
-footer {
+.site-footer {
   margin-top: 45px;
-  padding: 26px 0;
+  padding: 34px 0 20px;
   border-top: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  gap: 25px;
   color: var(--muted);
   font-size: 13px;
 }
 
-footer a {
-  margin-left: auto;
+.footer-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.55fr);
+  gap: 36px;
+  padding-bottom: 28px;
+}
+
+.footer-about p {
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+.footer-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.footer-nav h2 {
+  margin-bottom: 3px;
+  color: var(--ink);
+  font: 700 13px 'DM Sans', sans-serif;
+}
+
+.footer-nav a,
+.footer-bottom a {
   color: var(--muted);
   font-size: 12px;
+  text-decoration: none;
+}
+
+.footer-nav a:hover,
+.footer-bottom a:hover {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 17px;
+  border-top: 1px solid var(--line);
 }
 
 .footerbrand {
@@ -635,6 +815,13 @@ button:hover {
   header {
     padding: 0 22px;
   }
+  .site-nav {
+    padding: 0 22px;
+  }
+  .info-page {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
   .headernote {
     display: none;
   }
@@ -679,6 +866,28 @@ button:hover {
     height: 77px;
     padding: 0 18px;
     gap: 10px;
+  }
+  .site-nav {
+    min-height: 44px;
+    gap: 24px;
+    padding: 0 18px;
+  }
+  .site-nav a {
+    font-size: 13px;
+  }
+  .info-page {
+    min-height: 60vh;
+    padding: 38px 18px 58px;
+  }
+  .info-heading h1,
+  .not-found-page h1 {
+    font-size: 40px;
+  }
+  .faq-item summary {
+    font-size: 16px;
+  }
+  .faq-item > p {
+    padding-right: 30px;
   }
   .brand {
     font-size: 24px;
@@ -775,12 +984,13 @@ button:hover {
   .card h3 {
     font-size: 15px;
   }
-  footer {
+  .footer-main {
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.7fr);
+    gap: 24px;
+  }
+  .footer-bottom {
     flex-wrap: wrap;
     gap: 12px;
-  }
-  footer a {
-    margin-left: 0;
   }
   dialog {
     padding: 22px;
