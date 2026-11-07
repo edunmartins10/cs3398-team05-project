@@ -197,6 +197,7 @@ export default function HomePage() {
         onConfirm={confirmOrder} 
         onClose={() => setOrderItem(null)} 
       />
+      
       <RecWidget order={list[0]} goal={goal} />
     </>
     )
