@@ -1,7 +1,47 @@
 import { Router } from 'express';
-import { SUPABASE_URL, supabase } from '../services/supabase.js';
+import { SUPABASE_URL, supabase, userDatabase } from '../services/supabase.js';
 
 const router = Router();
+
+router.get('/signup-policy', async (req, res) => {
+  let data;
+  let error;
+  try {
+    ({ data, error } = await supabase.rpc('get_signup_policy'));
+  } catch (requestError) {
+    console.error('Could not retrieve signup policy from Supabase:', requestError);
+    return res.status(502).json({ error: 'Could not load signup requirements. Please try again.' });
+  }
+  if (error || !data) {
+    console.error('Could not retrieve signup policy from Supabase:', error);
+    return res.status(502).json({ error: 'Could not load signup requirements. Please try again.' });
+  }
+
+  return res.json({ policy: data });
+});
+
+router.post('/signup-policy/username-availability', async (req, res) => {
+  const username = req.body?.username;
+  if (typeof username !== 'string') {
+    return res.status(400).json({ error: 'A username is required.' });
+  }
+
+  let data;
+  let error;
+  try {
+    ({ data, error } = await supabase.rpc('check_signup_username_available', {
+      candidate: username,
+    }));
+  } catch (requestError) {
+    console.error('Could not check username availability with Supabase:', requestError);
+    return res.status(502).json({ error: 'Could not check username availability. Please try again.' });
+  }
+  if (error) {
+    console.error('Could not check username availability with Supabase:', error);
+    return res.status(502).json({ error: 'Could not check username availability. Please try again.' });
+  }
+  return res.json({ available: data === true });
+});
 
 router.get('/me', async (req, res) => {
   const accessToken = req.cookies?.bitewise_session;
@@ -28,14 +68,30 @@ router.get('/me', async (req, res) => {
   if (!user) return res.json({ profile: null });
 
   const metadata = user.user_metadata || {};
+  let profileData;
+  try {
+    const result = await userDatabase(accessToken)
+      .from('profiles')
+      .select('username, home_zip, phone_number')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (result.error) {
+      console.error('Could not retrieve the Supabase profile:', result.error);
+      return res.status(502).json({ error: 'Could not retrieve account profile.' });
+    }
+    profileData = result.data;
+  } catch (requestError) {
+    console.error('Could not retrieve the Supabase profile:', requestError);
+    return res.status(502).json({ error: 'Could not retrieve account profile.' });
+  }
   return res.json({
     profile: {
-      username: metadata.username || user.email || '',
+      username: profileData?.username || metadata.username || user.email || '',
       email: user.email || '',
-      zipCode: metadata.home_zip || metadata.zipCode || '',
+      zipCode: profileData?.home_zip || metadata.home_zip || metadata.zipCode || '',
       latitude: metadata.latitude ?? null,
       longitude: metadata.longitude ?? null,
-      phone: metadata.phone || '',
+      phone: profileData?.phone_number || metadata.phone || '',
       textUpdates: metadata.textUpdates === true,
       limitRecommendations: metadata.limitRecommendations !== false,
       radiusMiles: metadata.radiusMiles || '5',
@@ -50,8 +106,6 @@ router.get('/me', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-  const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
-  const zipCode = typeof req.body?.zipCode === 'string' ? req.body.zipCode.trim() : '';
   const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
   const textUpdates = req.body?.textUpdates === true;
 
@@ -63,9 +117,10 @@ router.post('/register', async (req, res) => {
       password: req.body?.password,
       options: {
         data: {
-          username,
-          zipCode,
-          home_zip: zipCode,
+          bitewise_signup: true,
+          username: req.body?.username,
+          zipCode: req.body?.zipCode,
+          home_zip: req.body?.zipCode,
           phone,
           textUpdates,
           limitRecommendations: true,
