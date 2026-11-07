@@ -8,7 +8,13 @@ export async function api(path, options = {}) {
     },
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
+  if (!response.ok) {
+    const error = new Error(data.error || 'Something went wrong. Please try again.');
+    error.errors = data.errors;
+    error.authError = data.authError;
+    error.authErrorCode = data.authErrorCode;
+    throw error;
+  }
   return data;
 }
 

@@ -3,6 +3,57 @@ import { SUPABASE_URL, supabase, userDatabase } from '../services/supabase.js';
 
 const router = Router();
 
+async function validateSignupProfile(usernameValue, zipCodeValue) {
+  const { data: policy, error: policyError } = await supabase.rpc('get_signup_policy');
+  if (policyError || !policy) {
+    console.error('Could not retrieve signup policy from Supabase:', policyError);
+    throw new Error('Could not validate signup requirements. Please try again.');
+  }
+
+  const username = typeof usernameValue === 'string' ? usernameValue.trim() : '';
+  const zipCode = typeof zipCodeValue === 'string' ? zipCodeValue.trim() : '';
+  const errors = [];
+
+  if (!username) {
+    errors.push({ field: 'username', message: 'Enter a username.' });
+  } else {
+    if (username.length < policy.username.minLength) {
+      errors.push({ field: 'username', message: `Username must be at least ${policy.username.minLength} characters.` });
+    }
+    if (username.length > policy.username.maxLength) {
+      errors.push({ field: 'username', message: `Username must be no more than ${policy.username.maxLength} characters.` });
+    }
+    if (!new RegExp(policy.username.pattern).test(username)) {
+      errors.push({ field: 'username', message: policy.username.description });
+    }
+
+    const usernameFormatValid = username.length >= policy.username.minLength
+      && username.length <= policy.username.maxLength
+      && new RegExp(policy.username.pattern).test(username);
+    if (usernameFormatValid) {
+      const { data: available, error: availabilityError } = await supabase.rpc(
+        'check_signup_username_available',
+        { candidate: username },
+      );
+      if (availabilityError) {
+        console.error('Could not check username availability with Supabase:', availabilityError);
+        throw new Error('Could not check username availability. Please try again.');
+      }
+      if (!available) {
+        errors.push({ field: 'username', message: 'Username Already Taken' });
+      }
+    }
+  }
+
+  if (!zipCode) {
+    errors.push({ field: 'zipCode', message: 'Enter a ZIP code.' });
+  } else if (!new RegExp(policy.zipCode.pattern).test(zipCode)) {
+    errors.push({ field: 'zipCode', message: policy.zipCode.description });
+  }
+
+  return errors;
+}
+
 router.get('/signup-policy', async (req, res) => {
   let data;
   let error;
@@ -137,9 +188,27 @@ router.post('/register', async (req, res) => {
   }
 
   if (error) {
-    if (error.status >= 400 && error.status < 500) {
-      return res.status(error.status).json({ error: error.message });
+    try {
+      const currentValidationErrors = await validateSignupProfile(req.body?.username, req.body?.zipCode);
+      if (currentValidationErrors.length) {
+        const isAuthClientError = error.status >= 400 && error.status < 500;
+        return res.status(isAuthClientError ? error.status : 422).json({
+          ...(isAuthClientError ? { authError: error.message } : {}),
+          ...(isAuthClientError && error.code ? { authErrorCode: error.code } : {}),
+          errors: currentValidationErrors,
+        });
+      }
+    } catch (validationError) {
+      console.error('Could not revalidate signup profile with Supabase:', validationError);
     }
+
+    if (error.status >= 400 && error.status < 500) {
+      return res.status(error.status).json({
+        error: error.message,
+        ...(error.code ? { authErrorCode: error.code } : {}),
+      });
+    }
+
     console.error('Could not register with Supabase:', error);
     return res.status(502).json({
       error: error.message || 'Supabase Auth could not complete registration. Check the Supabase Auth logs and email settings.',
@@ -151,7 +220,7 @@ router.post('/register', async (req, res) => {
     return res.status(201).json({
       ok: true,
       authenticated: false,
-      message: 'Please verify your email using the confirmation link sent to your inbox before logging in. Check your spam folder if you do not see it.',
+      message: 'Signup did not sign you in. If this email is eligible for registration, check your inbox and spam folder for a confirmation link. If you already have an account, log in instead.',
     });
   }
 

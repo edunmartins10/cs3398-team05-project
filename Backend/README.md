@@ -34,7 +34,11 @@ not version-controlled here. The running backend expects:
 
 The signup-policy table is the source of truth for username and ZIP validation.
 Update its row in Supabase to change those rules. The form reads the rules when
-the signup flow opens.
+the signup flow opens. Signup is submitted to Supabase Auth first. If Auth or
+the database trigger rejects signup, the backend rechecks username and ZIP
+against the Supabase policy and returns field-specific profile errors alongside
+any explicit Auth error. The form displays these errors; the database trigger
+remains the final enforcement layer.
 
 The availability check is only a preview: the database trigger and
 case-insensitive unique index enforce uniqueness at account creation.
@@ -49,10 +53,12 @@ Keep the guidance synchronized manually if the Supabase Auth policy changes;
 there is no Management API token or live password-policy query in the app.
 
 Email and password authentication remain handled by Supabase Auth. Email
-confirmation behavior is configured in Supabase; the UI displays the
-confirmation-pending response when signup returns no session. Profile reads
-use the caller's Supabase access token and are restricted by the
-`profiles_select_own` row-level security policy. Order-history routes also
-require a valid Supabase session.
+confirmation behavior is configured in Supabase; when signup returns no
+session, the UI gives neutral guidance to check for a confirmation email or
+log in if the address already has an account. This avoids claiming an account
+was created when Supabase intentionally returns a non-error response for an
+already-registered email. Profile reads use the caller's Supabase access token
+and are restricted by the `profiles_select_own` row-level security policy.
+Order-history routes also require a valid Supabase session.
 
 ## server.js
