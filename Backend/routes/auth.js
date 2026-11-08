@@ -61,6 +61,7 @@ router.post('/register', async (req, res) => {
     ({ data, error } = await supabase.auth.signUp({
       email: req.body?.email,
       password: req.body?.password,
+      emailRedirectTo: 'http://localhost:5173/email-verified',
       options: {
         data: {
           username,
