@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { postJson } from '../lib/api.js';
+import {Eye, EyeOff} from 'lucide-react';
+
 
 export default function AuthDialog({ open, onClose, onSignedIn, initialMessage = '' }) {
   const ref = useRef(null);
@@ -7,6 +9,7 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (open && !ref.current?.open) ref.current?.showModal();
@@ -55,7 +58,7 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
           <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'selected' : ''} onClick={() => { setMode('register'); setError(''); }}>Create account</button>
         </div>
         {mode === 'register' ? (
-          <>
+          <Fragment key="register">
             <label htmlFor="signupUsername">Username</label>
             <input id="signupUsername" name="username" autoComplete="username" minLength={3} maxLength={24} pattern="[A-Za-z0-9_.-]{3,24}" required placeholder="Choose a username" />
             <label htmlFor="signupEmail">Email address</label>
@@ -63,21 +66,27 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
             <label htmlFor="confirmEmail">Confirm email address</label>
             <input id="confirmEmail" name="confirmEmail" type="email" autoComplete="email" required placeholder="Enter your email again" />
             <label htmlFor="signupPassword">Password</label>
-            <input id="signupPassword" name="password" type="password" autoComplete="new-password" minLength={10} required placeholder="At least 10 characters" />
+            <div className="relative">
+              <input id="signupPassword" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" minLength={10} required placeholder="At least 10 characters" className="w-full pr-12"/>
+              <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800"> {showPassword ? <EyeOff size={20} /> : <Eye size={20} />} </button>
+          </div>
             <label htmlFor="zipCode">Home ZIP code</label>
             <input id="zipCode" name="zipCode" inputMode="numeric" autoComplete="postal-code" pattern="\d{5}" maxLength={5} required placeholder="5-digit US ZIP" />
             <p className="fine location-disclosure">Your ZIP code is saved with your account for future location features.</p>
             <label htmlFor="signupPhone">Phone number <span className="optional">optional</span></label>
             <input id="signupPhone" name="phone" type="tel" autoComplete="tel" placeholder="(512) 555-0123" />
             <label className="consent"><input type="checkbox" name="textUpdates" /><span>Send me Bitewise text updates. Message and data rates may apply. Reply STOP to opt out.</span></label>
-          </>
+          </Fragment>
         ) : (
-          <>
+          <Fragment key="login">
             <label htmlFor="loginEmail">Email address</label>
             <input id="loginEmail" name="email" type="email" autoComplete="email" required placeholder="you@example.com" />
             <label htmlFor="loginPassword">Password</label>
-            <input id="loginPassword" name="password" type="password" autoComplete="current-password" required />
-          </>
+            <div className="relative">
+              <input id="loginPassword" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required className="w-full pr-12"/>
+              <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} className="absolute right-3 top-[calc(50%+0.5rem)] -translate-y-1/2 text-gray-500 hover:text-gray-800"> {showPassword ? <Eye size={20} /> : <EyeOff size={20} />} </button>
+            </div>
+          </Fragment>
         )}
         {message && <div className="form-message" role="status">{message}</div>}
         {error && <div className="form-error" role="alert">{error}</div>}
