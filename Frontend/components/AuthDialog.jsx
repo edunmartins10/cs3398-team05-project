@@ -54,8 +54,8 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
         </div>
         <p>Save your ZIP code and recommendation settings. Your account details stay private.</p>
         <div className="auth-tabs" role="tablist" aria-label="Account options">
-          <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'selected' : ''} onClick={() => { setMode('login'); setError(''); }}>Log in</button>
-          <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'selected' : ''} onClick={() => { setMode('register'); setError(''); }}>Create account</button>
+          <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'selected' : ''} onClick={() => { setMode('login'); setError(''); setShowPassword(false); }}>Log in</button>
+          <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'selected' : ''} onClick={() => { setMode('register'); setError(''); setShowPassword(false); }}>Create account</button>
         </div>
         {mode === 'register' ? (
           <Fragment key="register">
