@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { api, postJson } from '../lib/api.js';
+import {Eye, EyeOff} from 'lucide-react';
 
 // Keep these display-only signup checks/messages aligned with the Supabase Auth settings.
 // Supabase remains authoritative and still decides whether signup is accepted.
@@ -23,6 +25,8 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
   const [signupPolicy, setSignupPolicy] = useState(null);
   const [signupPolicyError, setSignupPolicyError] = useState('');
   const [signupValues, setSignupValues] = useState({ username: '', zipCode: '' });
@@ -166,11 +170,11 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
         </div>
         <p>Save your ZIP code and recommendation settings. Your account details stay private.</p>
         <div className="auth-tabs" role="tablist" aria-label="Account options">
-          <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'selected' : ''} onClick={() => { setMode('login'); setError(''); }}>Log in</button>
-          <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'selected' : ''} onClick={() => { setMode('register'); setError(''); }}>Create account</button>
+          <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'selected' : ''} onClick={() => { setMode('login'); setError(''); setShowPassword(false); }}>Log in</button>
+          <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'selected' : ''} onClick={() => { setMode('register'); setError(''); setShowPassword(false); }}>Create account</button>
         </div>
         {mode === 'register' ? (
-          <>
+          <Fragment key="register">
             <label htmlFor="signupUsername">Username</label>
             <input
               id="signupUsername"
@@ -220,6 +224,10 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
               onChange={() => setSignupValidationErrors((current) => current.filter((item) => item.field !== 'email'))}
             />
             <label htmlFor="signupPassword">Password</label>
+            <div className="relative">
+              <input id="signupPassword" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" minLength={10} required placeholder="At least 10 characters" className="w-full pr-12"/>
+              <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800"> {showPassword ? <EyeOff size={20} /> : <Eye size={20} />} </button>
+          </div>
             <input
               id="signupPassword"
               name="password"
@@ -260,14 +268,17 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
             <label htmlFor="signupPhone">Phone number <span className="optional">optional</span></label>
             <input id="signupPhone" name="phone" type="tel" autoComplete="tel" placeholder="(512) 555-0123" />
             <label className="consent"><input type="checkbox" name="textUpdates" /><span>Send me Bitewise text updates. Message and data rates may apply. Reply STOP to opt out.</span></label>
-          </>
+          </Fragment>
         ) : (
-          <>
+          <Fragment key="login">
             <label htmlFor="loginEmail">Email address</label>
             <input id="loginEmail" name="email" type="text" autoComplete="email" placeholder="you@example.com" />
             <label htmlFor="loginPassword">Password</label>
-            <input id="loginPassword" name="password" type="password" autoComplete="current-password" />
-          </>
+            <div className="relative">
+              <input id="loginPassword" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required className="w-full pr-12"/>
+              <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} className="absolute right-3 top-[calc(50%+0.5rem)] -translate-y-1/2 text-gray-500 hover:text-gray-800"> {showPassword ? <Eye size={20} /> : <EyeOff size={20} />} </button>
+            </div>
+          </Fragment>
         )}
         {message && <div className="form-message" role="status">{message}</div>}
         {mode === 'register' ? (
