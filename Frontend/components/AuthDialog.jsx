@@ -279,8 +279,6 @@ export default function AuthDialog({ open, onClose, onSignedIn, initialMessage =
               <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} className="absolute right-3 top-[calc(50%+0.5rem)] -translate-y-1/2 text-gray-500 hover:text-gray-800"> {showPassword ? <Eye size={20} /> : <EyeOff size={20} />} </button>
             </div>
           </Fragment>
-            <input id="loginPassword" name="password" type="password" autoComplete="current-password" />
-          </>
         )}
         {message && <div className="form-message" role="status">{message}</div>}
         {mode === 'register' ? (
