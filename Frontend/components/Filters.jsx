@@ -32,7 +32,6 @@ export default function Filters({
         <option value="balanced">Balanced value</option>
         <option value="protein">Protein per dollar</option>
         <option value="calories">Calories per dollar</option>
-        <option value="price">Lowest price</option>
         <option value="dietary">Dietary score</option>
         <option value="personalized">Personalized recommendations</option>
       </select>
