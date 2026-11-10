@@ -183,8 +183,9 @@ export default function Results({
         <p>
           Balanced value gives equal weight to calories per dollar and protein
           per dollar, normalized against the best eligible order in each
-          category. Protein and calorie modes rank their respective ratios;
-          lowest-price mode ranks total cost. Combinations contain at most two
+          category. Protein and calorie modes rank their respective 
+          protien-per-dollar and calorie-per-dollar ratio. 
+          Combinations contain at most two
           menu items from one restaurant, with repeats allowed.
         </p>
         <p>
