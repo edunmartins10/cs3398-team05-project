@@ -1,3 +1,5 @@
+import './Filters.css';
+
 export default function Filters({
   budget,
   onBudgetChange,
@@ -16,6 +18,13 @@ export default function Filters({
   onCombosChange,
   onReset,
 }) {
+  const selectedCount = restaurants.filter((name) => selected.has(name)).length;
+  let restaurantSummary;
+  if (selectedCount === restaurants.length) restaurantSummary = `All restaurants (${restaurants.length})`;
+  else if (selectedCount === 0) restaurantSummary = 'None selected';
+  else if (selectedCount === 1) restaurantSummary = restaurants.find((name) => selected.has(name));
+  else restaurantSummary = `${selectedCount} of ${restaurants.length} selected`;
+
   return (
     <aside>
       <div className="section-number">01 / YOUR ORDER</div>
@@ -46,14 +55,17 @@ export default function Filters({
 
       <fieldset>
         <legend className="control-title">Restaurants</legend>
-        <div id="restaurants">
-          {restaurants.map((name) => (
-            <label className="check" key={name}>
-              <input type="checkbox" checked={selected.has(name)} onChange={(e) => onToggleRestaurant(name, e.target.checked)} />
-              <span>{name}</span><b>{itemCounts[name]}</b>
-            </label>
-          ))}
-        </div>
+        <details className="restaurant-dropdown">
+          <summary>{restaurantSummary}</summary>
+          <div id="restaurants">
+            {restaurants.map((name) => (
+              <label className="check" key={name}>
+                <input type="checkbox" checked={selected.has(name)} onChange={(e) => onToggleRestaurant(name, e.target.checked)} />
+                <span>{name}</span><b>{itemCounts[name]}</b>
+              </label>
+            ))}
+          </div>
+        </details>
       </fieldset>
 
       <fieldset className="allergen-settings">

@@ -1,0 +1,26 @@
+.restaurant-dropdown { position: relative; }
+.restaurant-dropdown summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font-size: 14px;
+}
+.restaurant-dropdown summary::-webkit-details-marker { display: none; }
+.restaurant-dropdown summary::after { content: '▾'; color: var(--muted); }
+.restaurant-dropdown[open] summary::after { content: '▴'; }
+.restaurant-dropdown #restaurants {
+  margin-top: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  max-height: 240px;
+  overflow-y: auto;
+}
