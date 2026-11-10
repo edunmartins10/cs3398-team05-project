@@ -42,6 +42,7 @@ const sodium = combineNutrient('sodium');
         fiber,
         sodium,
         source: a.source,
+        budgetUtilization: budget > 0 ? price / budget : 0,
         cpd: calories / (price / 100),
         ppd: protein / (price / 100),
       });
@@ -107,7 +108,7 @@ export function rank(all, goal, orderHistory = []) {
   : all;
 
 return eligible.sort(
-  (a, b) => b.score - a.score || a.price - b.price || a.name.localeCompare(b.name)
+  (a, b) => b.score - a.score || b.budgetUtilization - a.budgetUtilization || a.name.localeCompare(b.name)
 );
 }
 
