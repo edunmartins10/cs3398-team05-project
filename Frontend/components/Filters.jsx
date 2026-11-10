@@ -1,3 +1,5 @@
+import './Filters.css';
+
 export default function Filters({
   budget,
   onBudgetChange,
@@ -16,6 +18,13 @@ export default function Filters({
   onCombosChange,
   onReset,
 }) {
+  const selectedCount = restaurants.filter((name) => selected.has(name)).length;
+  let restaurantSummary;
+  if (selectedCount === restaurants.length) restaurantSummary = `All restaurants (${restaurants.length})`;
+  else if (selectedCount === 0) restaurantSummary = 'None selected';
+  else if (selectedCount === 1) restaurantSummary = restaurants.find((name) => selected.has(name));
+  else restaurantSummary = `${selectedCount} of ${restaurants.length} selected`;
+
   return (
     <aside>
       <div className="section-number">01 / YOUR ORDER</div>
@@ -47,14 +56,17 @@ export default function Filters({
 
       <fieldset>
         <legend className="control-title">Restaurants</legend>
-        <div id="restaurants">
-          {restaurants.map((name) => (
-            <label className="check" key={name}>
-              <input type="checkbox" checked={selected.has(name)} onChange={(e) => onToggleRestaurant(name, e.target.checked)} />
-              <span>{name}</span><b>{itemCounts[name]}</b>
-            </label>
-          ))}
-        </div>
+        <details className="restaurant-dropdown">
+          <summary>{restaurantSummary}</summary>
+          <div id="restaurants">
+            {restaurants.map((name) => (
+              <label className="check" key={name}>
+                <input type="checkbox" checked={selected.has(name)} onChange={(e) => onToggleRestaurant(name, e.target.checked)} />
+                <span>{name}</span><b>{itemCounts[name]}</b>
+              </label>
+            ))}
+          </div>
+        </details>
       </fieldset>
 
       <fieldset className="allergen-settings">
@@ -65,8 +77,16 @@ export default function Filters({
           value={selectedAllergens}
           onChange={(e) => onAllergenChange([...e.target.selectedOptions].map((option) => option.value))}
           aria-label="Select dietary restrictions and allergens"
+          className="space-y-1"
         >
-          {allergens.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+          {allergens.map((item) => 
+            <option 
+            className="p-2 rounded-md"
+            key={item.value} 
+            value={item.value}>
+              {item.label}
+            </option>
+          )}
         </select>
         <p className="fine">Hold Ctrl (Windows) or Command (Mac) to select more than one. Recommendations with matching menu data are filtered out.</p>
       </fieldset>

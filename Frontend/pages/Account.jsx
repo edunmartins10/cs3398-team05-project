@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import { User, Phone, Bell, RotateCcwClock, Save, Settings2, Shield } from 'lucide-react';
-import { api, postJson } from '../lib/api.js';
+import { api } from '../lib/api.js';
 import Footer from '../components/Footer.jsx';
 import OrderHistory from '../components/OrderHistory.jsx';
 
@@ -36,16 +37,21 @@ function DataRow({ label, value }) {
 }
 
 export default function AccountPage() {
-  const [activeTab, setActiveTab] = useState(() => (
-    new URLSearchParams(window.location.search).get('tab') === 'order_history' ? 'order_history' : 'account'
-  ));
+  const location = useLocation();
+  const requestedTab = location.state?.activeTab;
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState('');
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [activeTab, setActiveTab] = useState(() => (
+    tabs.some(({ id }) => id === requestedTab) ? requestedTab : 'account'
+  ));
+
+  useEffect(() => {
+    if (tabs.some(({ id }) => id === requestedTab)) setActiveTab(requestedTab);
+  }, [requestedTab]);
 
   useEffect(() => {
     let active = true;
@@ -79,24 +85,13 @@ export default function AccountPage() {
     return () => { active = false; };
   }, []);
 
-  async function signOut() {
-    try {
-      await postJson('/api/auth/logout', {});
-      setProfile(null);
-      setNotice('You have been logged out.');
-      setProfileError('');
-    } catch (error) {
-      setNotice(`Could not log out: ${error.message}`);
-    }
-  }
-
   const providers = [...new Set(profile?.linkedProviders || [])];
   const recommendationPreferences = profile?.recommendationPreferences;
   const notifications = profile?.notifications;
 
   return (
     <>
-      <Header profile={profile} onSignOut={signOut} />
+      <Header />
 
       <main className="mx-auto max-w-[1320px] px-[46px] pt-[34px]">
         <div className="mb-8 border-b border-[#dfe5df] pt-6">
@@ -107,13 +102,6 @@ export default function AccountPage() {
             View your account information and saved activity.
           </p>
         </div>
-
-        {notice && (
-          <div className="mb-[18px] flex items-center justify-between rounded-[9px] border border-[#cfe0d2] bg-[#eef6ee] p-[12px_15px] text-sm text-[#28573a]" role="status">
-            <span>{notice}</span>
-            <button type="button" onClick={() => setNotice('')} className="text-xl" aria-label="Dismiss">×</button>
-          </div>
-        )}
 
         {profileError && (
           <p className="mb-4 rounded-lg border border-[#e7c9c4] bg-[#fff4f1] p-3 text-sm text-[#8a2f23]" role="alert">
