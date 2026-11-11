@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { authenticatedSupabaseSession, SUPABASE_URL, supabase, userDatabase } from '../services/supabase.js';
+import {
+  authenticatedSupabaseSession,
+  SUPABASE_URL,
+  supabase,
+  userDatabase,
+} from '../services/supabase.js';
 
 const router = Router();
 
@@ -94,6 +99,34 @@ router.post('/signup-policy/username-availability', async (req, res) => {
   return res.json({ available: data === true });
 });
 
+router.get('/preferences/options', async (req, res) => {
+  try {
+    const [goals, restrictions] = await Promise.all([
+      supabase
+        .from('recommendation_goal_options')
+        .select('goal_key, label, winner_label')
+        .eq('enabled', true)
+        .order('sort_order'),
+      supabase
+        .from('dietary_restriction_options')
+        .select('restriction_key, label')
+        .eq('enabled', true)
+        .order('sort_order'),
+    ]);
+    if (goals.error || restrictions.error) {
+      console.error('Could not retrieve account preference options from Supabase:', goals.error || restrictions.error);
+      return res.status(502).json({ error: 'Could not load preference options. Check the Supabase account-preferences setup.' });
+    }
+    return res.json({
+      recommendationGoals: goals.data,
+      dietaryRestrictions: restrictions.data,
+    });
+  } catch (requestError) {
+    console.error('Could not retrieve account preference options from Supabase:', requestError);
+    return res.status(502).json({ error: 'Could not load preference options. Check the Supabase account-preferences setup.' });
+  }
+});
+
 router.get('/me', async (req, res) => {
   const accessToken = req.cookies?.bitewise_session;
   if (!accessToken) return res.json({ profile: null });
@@ -123,7 +156,7 @@ router.get('/me', async (req, res) => {
   try {
     const result = await userDatabase(accessToken)
       .from('profiles')
-      .select('username, home_zip, phone_number')
+      .select('username, home_zip, phone_number, recommendation_budget, recommendation_goal, excluded_allergens, limit_recommendations, recommendation_radius_miles')
       .eq('id', user.id)
       .maybeSingle();
     if (result.error) {
@@ -144,9 +177,17 @@ router.get('/me', async (req, res) => {
       longitude: metadata.longitude ?? null,
       phone: profileData ? profileData.phone_number || '' : metadata.phone || '',
       textUpdates: metadata.textUpdates === true,
-      limitRecommendations: metadata.limitRecommendations !== false,
-      radiusMiles: metadata.radiusMiles || '5',
-      recommendationPreferences: metadata.recommendationPreferences || null,
+      limitRecommendations: profileData
+        ? profileData.limit_recommendations
+        : metadata.limitRecommendations === true,
+      radiusMiles: profileData
+        ? profileData.recommendation_radius_miles == null ? 'infinity' : String(profileData.recommendation_radius_miles)
+        : metadata.radiusMiles || '10',
+      recommendationPreferences: profileData ? {
+        budget: profileData.recommendation_budget,
+        goal: profileData.recommendation_goal,
+        excludedAllergens: profileData.excluded_allergens || [],
+      } : null,
       notifications: metadata.notifications || null,
       createdAt: user.created_at || null,
       lastSignInAt: user.last_sign_in_at || null,
@@ -272,6 +313,108 @@ router.put('/me', async (req, res) => {
   }
 });
 
+router.put('/me/preferences', async (req, res) => {
+  const session = await authenticatedSupabaseSession(req, res, 'account preferences');
+  if (!session) return;
+
+  const preferences = req.body?.preferences;
+  const allowedFields = new Set([
+    'budget',
+    'goal',
+    'excludedAllergens',
+    'limitRecommendations',
+    'radiusMiles',
+  ]);
+  const submittedFields = preferences && typeof preferences === 'object' && !Array.isArray(preferences)
+    ? Object.keys(preferences)
+    : [];
+  if (
+    submittedFields.length !== allowedFields.size ||
+    submittedFields.some((field) => !allowedFields.has(field))
+  ) {
+    return res.status(400).json({ error: 'Submit all supported preference fields.' });
+  }
+
+  const errors = [];
+  const budget = preferences.budget;
+  if (budget !== null && (
+    typeof budget !== 'number' ||
+    !Number.isFinite(budget) ||
+    budget < 1 ||
+    budget > 100 ||
+    Math.round(budget * 100) !== budget * 100
+  )) {
+    errors.push({ field: 'budget', message: 'Enter a budget from $1 to $100, with up to two decimal places, or leave it blank.' });
+  }
+
+  const goal = preferences.goal;
+  if (typeof goal !== 'string') {
+    errors.push({ field: 'goal', message: 'Choose a recommendation goal from the available options.' });
+  }
+
+  const selectedRestrictions = preferences.excludedAllergens;
+  if (!Array.isArray(selectedRestrictions) || selectedRestrictions.some((option) => typeof option !== 'string')) {
+    errors.push({ field: 'excludedAllergens', message: 'Choose dietary restrictions from the available options.' });
+  }
+  const limitRecommendations = preferences.limitRecommendations;
+  if (typeof limitRecommendations !== 'boolean') {
+    errors.push({ field: 'limitRecommendations', message: 'Choose whether to limit recommendations by distance.' });
+  }
+  const radiusValue = preferences.radiusMiles;
+  const radiusMiles = radiusValue === 'infinity' ? null : Number(radiusValue);
+  if (
+    radiusValue !== 'infinity' &&
+    (!Number.isInteger(radiusMiles) || radiusMiles < 1 || radiusMiles > 100)
+  ) {
+    errors.push({ field: 'radiusMiles', message: 'Enter a radius from 1 to 100 miles, or choose any distance.' });
+  }
+  if (errors.length) return res.status(400).json({ errors });
+
+  try {
+    const { data, error } = await userDatabase(session.accessToken)
+      .from('profiles')
+      .update({
+        recommendation_budget: budget,
+        recommendation_goal: goal,
+        excluded_allergens: selectedRestrictions,
+        limit_recommendations: limitRecommendations,
+        recommendation_radius_miles: radiusMiles,
+      })
+      .eq('id', session.user.id)
+      .select('recommendation_budget, recommendation_goal, excluded_allergens, limit_recommendations, recommendation_radius_miles')
+      .maybeSingle();
+    if (error) {
+      if (error.code === '23514') {
+        const message = error.message || '';
+        const field = message.includes('budget') ? 'budget'
+          : message.includes('radius') ? 'radiusMiles'
+            : message.includes('goal') ? 'goal'
+              : 'excludedAllergens';
+        return res.status(400).json({ errors: [{ field, message }] });
+      }
+      if (error.code === '23505') {
+        return res.status(400).json({ errors: [{ field: 'excludedAllergens', message: 'Remove duplicate dietary restrictions.' }] });
+      }
+      console.error('Could not update Supabase account preferences:', error);
+      return res.status(502).json({ error: 'Your preferences could not be saved. Please try again.' });
+    }
+    if (!data) return res.status(404).json({ error: 'Your account profile could not be found.' });
+
+    return res.json({
+      recommendationPreferences: {
+        budget: data.recommendation_budget,
+        goal: data.recommendation_goal,
+        excludedAllergens: data.excluded_allergens,
+        limitRecommendations: data.limit_recommendations,
+        radiusMiles: data.recommendation_radius_miles == null ? 'infinity' : String(data.recommendation_radius_miles),
+      },
+    });
+  } catch (requestError) {
+    console.error('Could not update Supabase account preferences:', requestError);
+    return res.status(502).json({ error: 'Your preferences could not be saved. Please try again.' });
+  }
+});
+
 router.post('/register', async (req, res) => {
   const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
   const textUpdates = req.body?.textUpdates === true;
@@ -291,8 +434,8 @@ router.post('/register', async (req, res) => {
           home_zip: req.body?.zipCode,
           phone,
           textUpdates,
-          limitRecommendations: true,
-          radiusMiles: '5',
+          limitRecommendations: false,
+          radiusMiles: '10',
         },
       },
     }));

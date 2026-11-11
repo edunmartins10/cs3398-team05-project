@@ -17,8 +17,10 @@ Order history is handled by `orders.js` at `/api/auth/orders`.
 
 ## Supabase signup profile policy
 
-The Supabase database is configured outside this repository; its SQL setup is
-not version-controlled here. The running backend expects:
+Most Supabase setup is managed outside this repository. The account preference
+schema and seed data are provided in `supabase/account_preferences.sql`; run it
+in the Supabase SQL Editor before using the preference editor. The running
+backend also expects:
 
 - A `public.signup_policy` row defining the username and ZIP rules. The current
   rules are usernames of 3–24 letters, numbers, periods, underscores, or
@@ -66,5 +68,47 @@ was created when Supabase intentionally returns a non-error response for an
 already-registered email. Profile reads use the caller's Supabase access token
 and are restricted by the `profiles_select_own` row-level security policy.
 Order-history routes also require a valid Supabase session.
+
+Recommendation preferences are stored in the signed-in user's
+`public.profiles` row in `recommendation_budget`, `recommendation_goal`, and
+`excluded_allergens`. The options shown in the homepage and account editor are
+read from `public.recommendation_goal_options` and
+`public.dietary_restriction_options`; the profile trigger validates writes
+against those same tables. To configure this setup, run
+`supabase/account_preferences.sql` in the Supabase SQL Editor. Update option
+labels, sort order, or enabled status in those tables; adding or disabling
+options then flows through to both interfaces. Saved preferences do not
+currently change recommendations. Profile preference writes use the
+customer's access token and own-row RLS policy. The SQL setup does not migrate
+or modify existing customer data.
+
+Run `supabase/account_distance_preferences.sql` after the account-preferences
+setup to add the customer's distance-limit toggle and radius fields to
+`public.profiles`. A null radius represents “Any distance”; otherwise the
+database accepts integer miles from 1 to 100. These settings are saved even
+when the distance-limit toggle is off. New profiles default to distance
+limiting off and a 10-mile radius.
+
+### Adding a recommendation goal
+
+The Supabase goal-options table controls which goals appear in the homepage and
+account editor; it does not implement ranking behavior. Goal algorithms are
+implemented in `Frontend/lib/value.js` in the `rank` function, using the
+`goal` key as the selector. To add a working goal:
+
+1. Implement its ranking behavior in `rank` and update related display logic
+   such as `ratioLabel` and `winnerMetric` as appropriate.
+2. Add the matching `goal_key`, customer-facing `label`, and winner label to
+   `public.recommendation_goal_options` in a Supabase SQL migration or the
+   Supabase SQL Editor.
+3. Keep the goal key identical in code and Supabase, then test ranking and
+   display behavior.
+
+Adding a row in Supabase alone only makes the option selectable; without
+matching ranking code, the current ranking logic may use its default behavior.
+Likewise, code alone will not make the goal selectable unless it is enabled in
+Supabase. Include the option-table change in the same reviewed change as the
+algorithm where possible, so deploying it does not require an undocumented
+manual dashboard update.
 
 ## server.js
