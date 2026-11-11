@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { SUPABASE_URL, supabase, userDatabase } from '../services/supabase.js';
+import { authenticatedSupabaseSession, SUPABASE_URL, supabase, userDatabase } from '../services/supabase.js';
 
 const router = Router();
 
@@ -137,12 +137,12 @@ router.get('/me', async (req, res) => {
   }
   return res.json({
     profile: {
-      username: profileData?.username || metadata.username || user.email || '',
+      username: profileData ? profileData.username : metadata.username || user.email || '',
       email: user.email || '',
-      zipCode: profileData?.home_zip || metadata.home_zip || metadata.zipCode || '',
+      zipCode: profileData ? profileData.home_zip : metadata.home_zip || metadata.zipCode || '',
       latitude: metadata.latitude ?? null,
       longitude: metadata.longitude ?? null,
-      phone: profileData?.phone_number || metadata.phone || '',
+      phone: profileData ? profileData.phone_number || '' : metadata.phone || '',
       textUpdates: metadata.textUpdates === true,
       limitRecommendations: metadata.limitRecommendations !== false,
       radiusMiles: metadata.radiusMiles || '5',
@@ -154,6 +154,122 @@ router.get('/me', async (req, res) => {
       linkedProviders: (user.identities || []).map((identity) => identity.provider),
     },
   });
+});
+
+router.put('/me', async (req, res) => {
+  const session = await authenticatedSupabaseSession(req, res, 'account information');
+  if (!session) return;
+
+  const allowedFields = new Set(['username', 'zipCode', 'phone']);
+  const submittedFields = Object.keys(req.body || {});
+  if (!submittedFields.length || submittedFields.some((field) => !allowedFields.has(field))) {
+    return res.status(400).json({ error: 'Submit one or more supported account fields.' });
+  }
+
+  const inputErrors = [];
+  for (const field of submittedFields) {
+    if (typeof req.body[field] !== 'string') {
+      inputErrors.push({ field, message: `Enter a valid ${field === 'zipCode' ? 'ZIP code' : field === 'phone' ? 'phone number' : 'username'}.` });
+    }
+  }
+  if (inputErrors.length) {
+    return res.status(400).json({ errors: inputErrors });
+  }
+
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const zipCode = typeof req.body.zipCode === 'string' ? req.body.zipCode.trim() : '';
+  const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : '';
+  let policy = null;
+  if (submittedFields.includes('username') || submittedFields.includes('zipCode')) {
+    try {
+      const result = await supabase.rpc('get_signup_policy');
+      const usernamePolicy = result.data?.username;
+      const zipCodePolicy = result.data?.zipCode;
+      if (
+        result.error ||
+        !Number.isInteger(usernamePolicy?.minLength) ||
+        !Number.isInteger(usernamePolicy?.maxLength) ||
+        typeof usernamePolicy?.pattern !== 'string' ||
+        typeof usernamePolicy?.description !== 'string' ||
+        typeof zipCodePolicy?.pattern !== 'string' ||
+        typeof zipCodePolicy?.description !== 'string'
+      ) {
+        console.error('Could not retrieve profile validation policy from Supabase:', result.error);
+        return res.status(502).json({ error: 'Could not load account validation rules. Please try again.' });
+      }
+      policy = result.data;
+      new RegExp(policy.username.pattern);
+      new RegExp(policy.zipCode.pattern);
+    } catch (requestError) {
+      console.error('Could not retrieve profile validation policy from Supabase:', requestError);
+      return res.status(502).json({ error: 'Could not load account validation rules. Please try again.' });
+    }
+  }
+
+  const errors = [];
+  if (submittedFields.includes('username')) {
+    const usernamePattern = new RegExp(policy.username.pattern);
+    if (
+      username.length < policy.username.minLength ||
+      username.length > policy.username.maxLength ||
+      !usernamePattern.test(username)
+    ) {
+      errors.push({ field: 'username', message: policy.username.description });
+    }
+  }
+  if (submittedFields.includes('zipCode')) {
+    const zipCodePattern = new RegExp(policy.zipCode.pattern);
+    if (!zipCodePattern.test(zipCode)) {
+      errors.push({ field: 'zipCode', message: policy.zipCode.description });
+    }
+  }
+  if (errors.length) return res.status(400).json({ errors });
+
+  const profileUpdates = {};
+  if (submittedFields.includes('username')) profileUpdates.username = username;
+  if (submittedFields.includes('zipCode')) profileUpdates.home_zip = zipCode;
+  if (submittedFields.includes('phone')) profileUpdates.phone_number = phone || null;
+
+  try {
+    const { data, error } = await userDatabase(session.accessToken)
+      .from('profiles')
+      .update(profileUpdates)
+      .eq('id', session.user.id)
+      .select('username, home_zip, phone_number')
+      .maybeSingle();
+
+    if (error) {
+      if (error.code === '23505' && submittedFields.includes('username')) {
+        return res.status(400).json({
+          errors: [{ field: 'username', message: 'That username is already in use.' }],
+        });
+      }
+      if (error.code === '23514') {
+        if (policy && error.message === policy.zipCode.description) {
+          return res.status(400).json({ errors: [{ field: 'zipCode', message: policy.zipCode.description }] });
+        }
+        if (policy && error.message === policy.username.description) {
+          return res.status(400).json({ errors: [{ field: 'username', message: policy.username.description }] });
+        }
+      }
+      console.error('Could not update the Supabase profile:', error);
+      return res.status(502).json({ error: 'Your account information could not be saved. Please try again.' });
+    }
+    if (!data) {
+      return res.status(404).json({ error: 'Your account profile could not be found.' });
+    }
+
+    return res.json({
+      profile: {
+        username: data.username,
+        zipCode: data.home_zip,
+        phone: data.phone_number || '',
+      },
+    });
+  } catch (requestError) {
+    console.error('Could not update the Supabase profile:', requestError);
+    return res.status(502).json({ error: 'Your account information could not be saved. Please try again.' });
+  }
 });
 
 router.post('/register', async (req, res) => {

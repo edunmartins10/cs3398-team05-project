@@ -1,3 +1,6 @@
+export const AUTH_CHANGED_EVENT = 'bitewise-auth-changed';
+export const PROFILE_UPDATED_EVENT = 'bitewise-profile-updated';
+
 export async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,

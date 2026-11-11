@@ -31,6 +31,12 @@ not version-controlled here. The running backend expects:
 - The `get_signup_policy` RPC used by the signup form and
   `check_signup_username_available` RPC used for its debounced username check.
 - Row-level security that lets authenticated users read only their own profile.
+- An authenticated `UPDATE` column grant for `username`, `home_zip`, and
+  `phone_number`, plus an enabled `validate_profile_fields` trigger that checks
+  usernames and ZIP codes against `signup_policy` on profile insert and update.
+  The case-insensitive unique index remains the final username uniqueness
+  check. Account updates are made with the signed-in customer's access token
+  and restricted by the profile update policy.
 
 The signup-policy table is the source of truth for username and ZIP validation.
 Update its row in Supabase to change those rules. The form reads the rules when

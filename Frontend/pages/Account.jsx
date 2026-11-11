@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import { User, Phone, Bell, RotateCcwClock, Save, Settings2, Shield } from 'lucide-react';
-import { api } from '../lib/api.js';
+import { api, AUTH_CHANGED_EVENT, PROFILE_UPDATED_EVENT, putJson } from '../lib/api.js';
 import Footer from '../components/Footer.jsx';
 import OrderHistory from '../components/OrderHistory.jsx';
 
@@ -42,6 +42,10 @@ export default function AccountPage() {
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState('');
+  const [editValues, setEditValues] = useState({ username: '', zipCode: '', phone: '' });
+  const [editErrors, setEditErrors] = useState({});
+  const [editFeedback, setEditFeedback] = useState(null);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
@@ -55,12 +59,27 @@ export default function AccountPage() {
 
   useEffect(() => {
     let active = true;
+    let latestRequest = 0;
 
     async function loadAccount() {
+      const request = ++latestRequest;
+      const isCurrentRequest = () => active && request === latestRequest;
+      setProfileLoading(true);
+      setProfileError('');
+      setOrders([]);
+      setOrdersLoading(true);
+      setOrdersError('');
       try {
         const data = await api('/api/auth/me');
-        if (!active) return;
+        if (!isCurrentRequest()) return;
         setProfile(data.profile || null);
+        if (data.profile) {
+          setEditValues({
+            username: data.profile.username || '',
+            zipCode: data.profile.zipCode || '',
+            phone: data.profile.phone || '',
+          });
+        }
         if (!data.profile) {
           setOrdersLoading(false);
           return;
@@ -68,26 +87,54 @@ export default function AccountPage() {
 
         try {
           const history = await api('/api/auth/orders');
-          if (active) setOrders(history.orders || []);
+          if (isCurrentRequest()) setOrders(history.orders || []);
         } catch (error) {
-          if (active) setOrdersError(error.message);
+          if (isCurrentRequest()) setOrdersError(error.message);
         } finally {
-          if (active) setOrdersLoading(false);
+          if (isCurrentRequest()) setOrdersLoading(false);
         }
       } catch (error) {
-        if (active) setProfileError(error.message);
+        if (isCurrentRequest()) setProfileError(error.message);
       } finally {
-        if (active) setProfileLoading(false);
+        if (isCurrentRequest()) setProfileLoading(false);
       }
     }
 
     loadAccount();
-    return () => { active = false; };
+    window.addEventListener(AUTH_CHANGED_EVENT, loadAccount);
+    return () => {
+      active = false;
+      window.removeEventListener(AUTH_CHANGED_EVENT, loadAccount);
+    };
   }, []);
 
   const providers = [...new Set(profile?.linkedProviders || [])];
   const recommendationPreferences = profile?.recommendationPreferences;
   const notifications = profile?.notifications;
+
+  async function saveAccount(event, fields) {
+    event.preventDefault();
+    setSavingProfile(true);
+    setEditErrors((current) => Object.fromEntries(fields.map((field) => [field, ''])));
+    setEditFeedback(null);
+    try {
+      const updates = Object.fromEntries(fields.map((field) => [field, editValues[field]]));
+      const result = await putJson('/api/auth/me', updates);
+      setProfile((current) => ({ ...current, ...result.profile }));
+      setEditValues((current) => ({ ...current, ...result.profile }));
+      window.dispatchEvent(new CustomEvent(PROFILE_UPDATED_EVENT, { detail: result.profile }));
+      setEditFeedback({ type: 'success', message: 'Your account information was saved.' });
+    } catch (error) {
+      if (Array.isArray(error.errors)) {
+        setEditErrors(Object.fromEntries(error.errors.map(({ field, message }) => [field, message])));
+        setEditFeedback({ type: 'error', message: 'Please correct the highlighted fields and try again.' });
+      } else {
+        setEditFeedback({ type: 'error', message: error.message });
+      }
+    } finally {
+      setSavingProfile(false);
+    }
+  }
 
   return (
     <>
@@ -142,14 +189,55 @@ export default function AccountPage() {
                 {activeTab === 'account' && (
                   <div>
                     <h2 className="border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Your Account</h2>
-                    <dl>
-                      <DataRow label="Name" value={display(profile.username)} />
-                      <DataRow label="Email" value={display(profile.email)} />
-                      <DataRow
-                        label="Linked accounts"
-                        value={providers.length ? providers.map((provider) => provider[0].toUpperCase() + provider.slice(1)).join(', ') : 'No linked accounts'}
-                      />
-                    </dl>
+                    <form className="space-y-4 py-4" noValidate onSubmit={(event) => saveAccount(event, ['username'])}>
+                      {editFeedback && (
+                        <p
+                          className={`rounded-lg border p-3 text-sm ${editFeedback.type === 'success' ? 'border-[#cfe0d2] bg-[#f0f7ef] text-[#28573a]' : 'border-[#e7c9c4] bg-[#fff4f1] text-[#8a2f23]'}`}
+                          role={editFeedback.type === 'success' ? 'status' : 'alert'}
+                        >
+                          {editFeedback.message}
+                        </p>
+                      )}
+                      <div>
+                        <label className="mb-1 block font-bold text-[#172b25]" htmlFor="accountUsername">Name</label>
+                        <input
+                          id="accountUsername"
+                          autoComplete="username"
+                          className="w-full rounded-lg border border-[#dfe5df] px-3 py-2"
+                          value={editValues.username}
+                          aria-invalid={Boolean(editErrors.username)}
+                          aria-describedby={editErrors.username ? 'accountUsernameError' : undefined}
+                          onChange={(event) => {
+                            setEditValues((current) => ({ ...current, username: event.target.value }));
+                            setEditErrors((current) => ({ ...current, username: '' }));
+                            setEditFeedback(null);
+                          }}
+                        />
+                        {editErrors.username && <p id="accountUsernameError" className="mt-1 text-sm text-[#8a2f23]" role="alert">{editErrors.username}</p>}
+                      </div>
+                      <div>
+                        <label className="mb-1 block font-bold text-[#172b25]" htmlFor="accountEmail">Email</label>
+                        <input
+                          id="accountEmail"
+                          className="w-full rounded-lg border border-[#dfe5df] bg-[#f6f8f5] px-3 py-2 text-[#63726c]"
+                          value={profile.email}
+                          readOnly
+                          aria-describedby="accountEmailHelp"
+                        />
+                        <p id="accountEmailHelp" className="mt-1 text-sm text-[#63726c]">Email is managed by your sign-in provider.</p>
+                      </div>
+                      <p className="text-sm text-[#63726c]">
+                        <span className="font-bold text-[#172b25]">Linked accounts: </span>
+                        {providers.length ? providers.map((provider) => provider[0].toUpperCase() + provider.slice(1)).join(', ') : 'No linked accounts'}
+                      </p>
+                      <button
+                        type="submit"
+                        className="rounded-lg bg-[#176447] px-4 py-2 font-semibold text-white transition-colors hover:bg-[#125239] disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={savingProfile}
+                      >
+                        {savingProfile ? 'Saving…' : 'Save changes'}
+                      </button>
+                    </form>
                   </div>
                 )}
 
@@ -187,10 +275,58 @@ export default function AccountPage() {
                 {activeTab === 'address_and_phone' && (
                   <div>
                     <h2 className="border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Address and Phone</h2>
-                    <dl>
-                      <DataRow label="Home ZIP code" value={display(profile.zipCode)} />
-                      <DataRow label="Phone" value={display(profile.phone)} />
-                    </dl>
+                    <form className="space-y-4 py-4" noValidate onSubmit={(event) => saveAccount(event, ['zipCode', 'phone'])}>
+                      {editFeedback && (
+                        <p
+                          className={`rounded-lg border p-3 text-sm ${editFeedback.type === 'success' ? 'border-[#cfe0d2] bg-[#f0f7ef] text-[#28573a]' : 'border-[#e7c9c4] bg-[#fff4f1] text-[#8a2f23]'}`}
+                          role={editFeedback.type === 'success' ? 'status' : 'alert'}
+                        >
+                          {editFeedback.message}
+                        </p>
+                      )}
+                      <div>
+                        <label className="mb-1 block font-bold text-[#172b25]" htmlFor="accountZipCode">Home ZIP code</label>
+                        <input
+                          id="accountZipCode"
+                          autoComplete="postal-code"
+                          className="w-full rounded-lg border border-[#dfe5df] px-3 py-2"
+                          value={editValues.zipCode}
+                          aria-invalid={Boolean(editErrors.zipCode)}
+                          aria-describedby={editErrors.zipCode ? 'accountZipCodeError' : undefined}
+                          onChange={(event) => {
+                            setEditValues((current) => ({ ...current, zipCode: event.target.value }));
+                            setEditErrors((current) => ({ ...current, zipCode: '' }));
+                            setEditFeedback(null);
+                          }}
+                        />
+                        {editErrors.zipCode && <p id="accountZipCodeError" className="mt-1 text-sm text-[#8a2f23]" role="alert">{editErrors.zipCode}</p>}
+                      </div>
+                      <div>
+                        <label className="mb-1 block font-bold text-[#172b25]" htmlFor="accountPhone">Phone number</label>
+                        <input
+                          id="accountPhone"
+                          type="tel"
+                          autoComplete="tel"
+                          className="w-full rounded-lg border border-[#dfe5df] px-3 py-2"
+                          value={editValues.phone}
+                          aria-invalid={Boolean(editErrors.phone)}
+                          aria-describedby={editErrors.phone ? 'accountPhoneError' : undefined}
+                          onChange={(event) => {
+                            setEditValues((current) => ({ ...current, phone: event.target.value }));
+                            setEditErrors((current) => ({ ...current, phone: '' }));
+                            setEditFeedback(null);
+                          }}
+                        />
+                        {editErrors.phone && <p id="accountPhoneError" className="mt-1 text-sm text-[#8a2f23]" role="alert">{editErrors.phone}</p>}
+                      </div>
+                      <button
+                        type="submit"
+                        className="rounded-lg bg-[#176447] px-4 py-2 font-semibold text-white transition-colors hover:bg-[#125239] disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={savingProfile}
+                      >
+                        {savingProfile ? 'Saving…' : 'Save changes'}
+                      </button>
+                    </form>
                   </div>
                 )}
 
