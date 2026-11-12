@@ -1399,3 +1399,216 @@ button:hover {
     padding: 9px 4px;
   }
 }
+
+.account-page {
+  padding-bottom: 0;
+}
+
+.account-page-heading {
+  margin-bottom: 28px;
+}
+
+.account-page-heading h1 {
+  font-size: clamp(30px, 4vw, 38px);
+  line-height: 1.1;
+}
+
+.account-settings-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 250px) minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
+  margin-bottom: 48px;
+}
+
+.account-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.account-tab {
+  min-height: 46px;
+}
+
+.account-panel {
+  min-width: 0;
+  min-height: 320px;
+  padding: 24px;
+  overflow: visible;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.account-panel-title {
+  margin: 0;
+  padding: 2px 0 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.account-page input:not([type='checkbox']),
+.account-page select {
+  min-height: 44px;
+  border-color: #cbd6cb;
+  border-radius: 8px;
+  color: var(--ink);
+}
+
+.account-page input:not([type='checkbox']):focus,
+.account-page select:focus {
+  outline: 3px solid #40936b66;
+  border-color: #40936b;
+}
+
+.account-page input[readonly],
+.account-page input:disabled {
+  cursor: not-allowed;
+}
+
+.account-page input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  accent-color: var(--green);
+}
+
+.account-form {
+  max-width: 620px;
+  padding-top: 20px;
+}
+
+.account-form > button[type='submit'] {
+  min-height: 44px;
+  padding-inline: 20px;
+}
+
+.account-preferences-form {
+  max-width: 800px;
+}
+
+.account-preferences-form fieldset {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.account-preferences-form fieldset legend {
+  padding-inline: 4px;
+  line-height: 1.4;
+}
+
+.account-preferences-form fieldset label {
+  line-height: 1.45;
+}
+
+@media (min-width: 1000px) {
+  .account-preferences-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 22px 24px;
+  }
+
+  .account-preferences-form > * {
+    margin-top: 0 !important;
+  }
+
+  .account-preferences-form > .account-form-message,
+  .account-preferences-form > fieldset,
+  .account-preferences-form > p,
+  .account-preferences-form > button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 850px) {
+  .account-page {
+    padding: 28px 22px 0;
+  }
+
+  .account-settings-layout {
+    grid-template-columns: minmax(200px, 220px) minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .account-panel {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 760px) {
+  .account-page {
+    padding: 26px 18px 0;
+  }
+
+  .account-page-heading {
+    margin-bottom: 20px;
+    padding-top: 10px;
+  }
+
+  .account-settings-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+
+  .account-tabs {
+    width: 100%;
+    flex-direction: row;
+    gap: 6px;
+    padding: 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .account-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .account-tab {
+    width: auto;
+    min-height: 42px;
+    flex: 0 0 auto;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
+  .account-tab svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .account-panel {
+    width: 100%;
+    min-height: 220px;
+    padding: 18px;
+  }
+
+  .account-panel-title {
+    padding-bottom: 13px;
+  }
+}
+
+@media (max-width: 420px) {
+  .account-page {
+    padding-inline: 14px;
+  }
+
+  .account-panel {
+    padding: 15px;
+  }
+
+  .account-preferences-form fieldset {
+    padding: 13px;
+  }
+}

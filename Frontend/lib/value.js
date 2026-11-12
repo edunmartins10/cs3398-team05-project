@@ -168,15 +168,6 @@ export function ratioLabel(x, goal) {
   return Math.round(x.score) + '/100 value score';
 }
 
-export const WINNER_LABELS = {
-  balanced: 'BEST BALANCED VALUE',
-  protein: 'MOST PROTEIN PER DOLLAR',
-  calories: 'MOST CALORIES PER DOLLAR',
-  price: 'LOWEST PRICE',
-  personalized: 'RECOMMENDED FOR YOU',
-  dietary: 'BEST DIETARY SCORE',
-};
-
 export function winnerMetric(w, goal) {
   if (goal === 'dietary') {
   return {

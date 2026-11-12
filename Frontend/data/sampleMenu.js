@@ -241,21 +241,6 @@ const sample = [
   ["Industry", "Iced Tea", 3.49, 10, 0, ["none"]],
 ];
 
-export const dietaryOptions = [
-  { value: "lactose", label: "Lactose intolerant / dairy-free" },
-  { value: "vegetarian", label: "Vegetarian" },
-  { value: "vegan", label: "Vegan" },
-  { value: "red-meat", label: "Red-meat allergy / avoid beef & pork" },
-  { value: "shellfish", label: "Shellfish allergy" },
-  { value: "fish", label: "Fish allergy" },
-  { value: "peanut", label: "Peanut allergy" },
-  { value: "tree-nut", label: "Tree-nut allergy" },
-  { value: "egg", label: "Egg allergy" },
-  { value: "soy", label: "Soy allergy" },
-  { value: "gluten", label: "Gluten-free / celiac" },
-  { value: "sesame", label: "Sesame allergy" },
-];
-
 export function createSampleMenu() {
   return sample.map((x, i) => ({
     id: i,

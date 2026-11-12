@@ -82,6 +82,28 @@ currently change recommendations. Profile preference writes use the
 customer's access token and own-row RLS policy. The SQL setup does not migrate
 or modify existing customer data.
 
+### Keeping dietary restrictions in sync
+
+`public.dietary_restriction_options` is the source of truth for which
+restrictions customers can select, but its rows do not define filtering
+behavior. Each `restriction_key` must also be supported by the active
+homepage filter in `Frontend/lib/value.js` (`itemMatchesRestrictions`):
+
+- `lactose` is a special case that excludes the `dairy` tag.
+- `vegetarian` excludes `red-meat`, `fish`, and `shellfish` tags.
+- `vegan` excludes `dairy`, `egg`, `red-meat`, `fish`, and `shellfish` tags.
+- Other keys are compared directly with menu allergen tags. Use the exact same
+  tag key (for example, `red-meat`) in Supabase; the customer-facing
+  label can be more readable (for example, “No red meat”).
+
+Before adding or renaming an option, update the Supabase option row and, when
+needed, the filter mapping together. Verify the key against tags from both the
+sample menu and live menu data, and test that selecting it excludes matching
+items. A key can pass Supabase's profile validation and appear in the UI while
+having no filtering effect if the code does not recognize it. Keep the
+database change and corresponding filter behavior in the same reviewed
+release.
+
 Run `supabase/account_distance_preferences.sql` after the account-preferences
 setup to add the customer's distance-limit toggle and radius fields to
 `public.profiles`. A null radius represents “Any distance”; otherwise the

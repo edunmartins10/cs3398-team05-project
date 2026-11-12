@@ -6,28 +6,32 @@ import Results from '../components/Results.jsx';
 import ImportDialog from '../components/ImportDialog.jsx';
 import OrderDialog from '../components/OrderDialog.jsx';
 import RecWidget from '../components/RecWidget.jsx';
-import { createSampleMenu, dietaryOptions } from '../data/sampleMenu.js';
+import { createSampleMenu } from '../data/sampleMenu.js';
 import { parseMenu, rankedOrders, restaurantNames } from '../lib/value.js';
 import { api, postJson, putJson } from '../lib/api.js';
 import { distanceMiles, radiusLimit, restaurantLocations } from '../lib/location.js';
 import Footer from '../components/Footer.jsx';
-const DEFAULTS = { budget: '10', goal: 'balanced', minimum: '400', combos: true };
+const DEFAULTS = { budget: '10', minimum: '400', combos: true };
 
 export default function HomePage() {
   const [menu, setMenu] = useState(createSampleMenu);
   const [selected, setSelected] = useState(() => new Set(createSampleMenu().map((x) => x.restaurant)));
   const [budget, setBudget] = useState(DEFAULTS.budget);
-  const [goal, setGoal] = useState(DEFAULTS.goal);
+  const [goal, setGoal] = useState('');
   const [minimum, setMinimum] = useState(DEFAULTS.minimum);
   const [combos, setCombos] = useState(DEFAULTS.combos);
   const [selectedAllergens, setSelectedAllergens] = useState([]);
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState('');
   const [profile, setProfile] = useState(null);
+  const [recommendationGoals, setRecommendationGoals] = useState([]);
+  const [dietaryRestrictions, setDietaryRestrictions] = useState([]);
+  const [preferenceOptionsError, setPreferenceOptionsError] = useState('');
   const [notice, setNotice] = useState('');
   const [noticeError, setNoticeError] = useState(false);
   const [orderItem, setOrderItem] = useState(null);
   const names = useMemo(() => restaurantNames(menu), [menu]);
+  const goalLabel = recommendationGoals.find((option) => option.goal_key === goal)?.winner_label || '';
   const itemCounts = useMemo(() => {
     const counts = {};
     for (const item of menu) counts[item.restaurant] = (counts[item.restaurant] || 0) + 1;
@@ -53,6 +57,20 @@ export default function HomePage() {
   );
 
   useEffect(() => {
+    api('/api/auth/preferences/options')
+      .then(({ recommendationGoals: goals, dietaryRestrictions: restrictions }) => {
+        if (!goals.length || !restrictions.length) {
+          throw new Error('Supabase has no enabled recommendation goals or dietary restrictions.');
+        }
+        setRecommendationGoals(goals);
+        setDietaryRestrictions(restrictions);
+        setGoal((current) => goals.some((option) => option.goal_key === current) ? current : goals[0].goal_key);
+        setPreferenceOptionsError('');
+      })
+      .catch((error) => {
+        setPreferenceOptionsError(error.message);
+      });
+
     api('/api/auth/me')
       .then((data) => {
         const nextProfile = data.profile || null;
@@ -85,7 +103,7 @@ export default function HomePage() {
 
   function resetFilters() {
     setBudget(DEFAULTS.budget);
-    setGoal(DEFAULTS.goal);
+    setGoal(recommendationGoals[0]?.goal_key || '');
     setMinimum(DEFAULTS.minimum);
     setCombos(DEFAULTS.combos);
     setSelectedAllergens([]);
@@ -156,10 +174,15 @@ export default function HomePage() {
         }
         
         <div className="workspace">
-          <Filters
+          {preferenceOptionsError ? (
+            <p className="rounded-lg border border-[#e7c9c4] bg-[#fff4f1] p-3 text-sm text-[#8a2f23]" role="alert">
+              Could not load recommendation settings: {preferenceOptionsError}
+            </p>
+          ) : recommendationGoals.length > 0 && dietaryRestrictions.length > 0 ? <Filters
             budget={budget}
             onBudgetChange={setBudget}
             goal={goal}
+            recommendationGoals={recommendationGoals}
             onGoalChange={setGoal}
             minimum={minimum}
             onMinimumChange={setMinimum}
@@ -170,7 +193,7 @@ export default function HomePage() {
             combos={combos}
             onCombosChange={setCombos}
             onReset={resetFilters}
-            allergens={dietaryOptions}
+            allergens={dietaryRestrictions}
             selectedAllergens={selectedAllergens}
             onAllergenChange={(allergens) => {
               setSelectedAllergens(allergens);
@@ -178,8 +201,8 @@ export default function HomePage() {
                 setProfile((prev) => ({ ...(prev ?? {}), allergens }));
               }
             }}
-          />
-          <Results list={list} goal={goal} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} onOrder={setOrderItem} />
+          /> : <p className="py-4 text-[#63726c]" role="status">Loading recommendation settings…</p>}
+          <Results list={list} goal={goal} goalLabel={goalLabel} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} onOrder={setOrderItem} />
         </div>
 
         <Footer />
@@ -198,7 +221,7 @@ export default function HomePage() {
         onClose={() => setOrderItem(null)} 
       />
       
-      <RecWidget order={list[0]} goal={goal} />
+      <RecWidget order={list[0]} goal={goal} goalLabel={goalLabel} />
     </>
     )
 }
