@@ -18,9 +18,8 @@ Order history is handled by `orders.js` at `/api/auth/orders`.
 ## Supabase signup profile policy
 
 Most Supabase setup is managed outside this repository. The account preference
-schema and seed data are provided in `supabase/account_preferences.sql`; run it
-in the Supabase SQL Editor before using the preference editor. The running
-backend also expects:
+schema, option catalogs, and seed values must be configured in the Supabase
+project before using the preference editor. The running backend also expects:
 
 - A `public.signup_policy` row defining the username and ZIP rules. The current
   rules are usernames of 3–24 letters, numbers, periods, underscores, or
@@ -39,6 +38,13 @@ backend also expects:
   The case-insensitive unique index remains the final username uniqueness
   check. Account updates are made with the signed-in customer's access token
   and restricted by the profile update policy.
+
+For account edits, the backend checks that only supported fields and JSON
+strings are submitted; Supabase enforces username and ZIP formats. On a
+database rejection, the backend maps the error to the relevant field for user
+feedback. Phone values currently receive no format validation beyond being a
+string, so add any required phone-number rule to the Supabase profile trigger
+or a database constraint.
 
 The signup-policy table is the source of truth for username and ZIP validation.
 Update its row in Supabase to change those rules. The form reads the rules when
@@ -74,13 +80,15 @@ Recommendation preferences are stored in the signed-in user's
 `excluded_allergens`. The options shown in the homepage and account editor are
 read from `public.recommendation_goal_options` and
 `public.dietary_restriction_options`; the profile trigger validates writes
-against those same tables. To configure this setup, run
-`supabase/account_preferences.sql` in the Supabase SQL Editor. Update option
+against those same tables. Configure the required tables, profile columns,
+access policies, and validation trigger in the Supabase project. Update option
 labels, sort order, or enabled status in those tables; adding or disabling
 options then flows through to both interfaces. Saved preferences do not
-currently change recommendations. Profile preference writes use the
-customer's access token and own-row RLS policy. The SQL setup does not migrate
-or modify existing customer data.
+currently change recommendations. Profile preference writes use the customer's
+access token and own-row RLS policy. This setup does not migrate or modify
+existing customer data. The API checks the request shape and JSON value types;
+the database trigger and constraints enforce budget and radius limits, valid
+catalog choices.
 
 ### Keeping dietary restrictions in sync
 
@@ -104,12 +112,11 @@ having no filtering effect if the code does not recognize it. Keep the
 database change and corresponding filter behavior in the same reviewed
 release.
 
-Run `supabase/account_distance_preferences.sql` after the account-preferences
-setup to add the customer's distance-limit toggle and radius fields to
-`public.profiles`. A null radius represents “Any distance”; otherwise the
-database accepts integer miles from 1 to 100. These settings are saved even
-when the distance-limit toggle is off. New profiles default to distance
-limiting off and a 10-mile radius.
+After the account-preferences setup, add the customer's distance-limit toggle
+and radius fields to `public.profiles` in Supabase. A null radius represents
+“Any distance”; otherwise the database accepts integer miles from 1 to 100.
+These settings are saved even when the distance-limit toggle is off. New
+profiles default to distance limiting off and a 10-mile radius.
 
 ### Adding a recommendation goal
 
@@ -121,8 +128,7 @@ implemented in `Frontend/lib/value.js` in the `rank` function, using the
 1. Implement its ranking behavior in `rank` and update related display logic
    such as `ratioLabel` and `winnerMetric` as appropriate.
 2. Add the matching `goal_key`, customer-facing `label`, and winner label to
-   `public.recommendation_goal_options` in a Supabase SQL migration or the
-   Supabase SQL Editor.
+   `public.recommendation_goal_options` in Supabase.
 3. Keep the goal key identical in code and Supabase, then test ranking and
    display behavior.
 

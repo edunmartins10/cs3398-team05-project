@@ -7,6 +7,16 @@ import {
 } from '../services/supabase.js';
 
 const router = Router();
+const databaseValidationErrors = new Set(['22P02', '22001', '22003', '23514', 'P0001']);
+
+function preferenceValidationField(error) {
+  const message = `${error.message || ''} ${error.details || ''}`.toLowerCase();
+  if (message.includes('budget')) return 'budget';
+  if (message.includes('radius')) return 'radiusMiles';
+  if (message.includes('goal')) return 'goal';
+  if (message.includes('allergen') || message.includes('restriction')) return 'excludedAllergens';
+  return null;
+}
 
 async function validateSignupProfile(usernameValue, zipCodeValue) {
   const { data: policy, error: policyError } = await supabase.rpc('get_signup_policy');
@@ -220,51 +230,6 @@ router.put('/me', async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
   const zipCode = typeof req.body.zipCode === 'string' ? req.body.zipCode.trim() : '';
   const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : '';
-  let policy = null;
-  if (submittedFields.includes('username') || submittedFields.includes('zipCode')) {
-    try {
-      const result = await supabase.rpc('get_signup_policy');
-      const usernamePolicy = result.data?.username;
-      const zipCodePolicy = result.data?.zipCode;
-      if (
-        result.error ||
-        !Number.isInteger(usernamePolicy?.minLength) ||
-        !Number.isInteger(usernamePolicy?.maxLength) ||
-        typeof usernamePolicy?.pattern !== 'string' ||
-        typeof usernamePolicy?.description !== 'string' ||
-        typeof zipCodePolicy?.pattern !== 'string' ||
-        typeof zipCodePolicy?.description !== 'string'
-      ) {
-        console.error('Could not retrieve profile validation policy from Supabase:', result.error);
-        return res.status(502).json({ error: 'Could not load account validation rules. Please try again.' });
-      }
-      policy = result.data;
-      new RegExp(policy.username.pattern);
-      new RegExp(policy.zipCode.pattern);
-    } catch (requestError) {
-      console.error('Could not retrieve profile validation policy from Supabase:', requestError);
-      return res.status(502).json({ error: 'Could not load account validation rules. Please try again.' });
-    }
-  }
-
-  const errors = [];
-  if (submittedFields.includes('username')) {
-    const usernamePattern = new RegExp(policy.username.pattern);
-    if (
-      username.length < policy.username.minLength ||
-      username.length > policy.username.maxLength ||
-      !usernamePattern.test(username)
-    ) {
-      errors.push({ field: 'username', message: policy.username.description });
-    }
-  }
-  if (submittedFields.includes('zipCode')) {
-    const zipCodePattern = new RegExp(policy.zipCode.pattern);
-    if (!zipCodePattern.test(zipCode)) {
-      errors.push({ field: 'zipCode', message: policy.zipCode.description });
-    }
-  }
-  if (errors.length) return res.status(400).json({ errors });
 
   const profileUpdates = {};
   if (submittedFields.includes('username')) profileUpdates.username = username;
@@ -285,12 +250,34 @@ router.put('/me', async (req, res) => {
           errors: [{ field: 'username', message: 'That username is already in use.' }],
         });
       }
-      if (error.code === '23514') {
-        if (policy && error.message === policy.zipCode.description) {
-          return res.status(400).json({ errors: [{ field: 'zipCode', message: policy.zipCode.description }] });
+      if (databaseValidationErrors.has(error.code)) {
+        let policy;
+        try {
+          const result = await supabase.rpc('get_signup_policy');
+          if (result.error) throw result.error;
+          policy = result.data;
+        } catch (policyError) {
+          console.error('Could not retrieve profile validation messages from Supabase:', policyError);
         }
-        if (policy && error.message === policy.username.description) {
-          return res.status(400).json({ errors: [{ field: 'username', message: policy.username.description }] });
+
+        const message = error.message || '';
+        const field = submittedFields.find((submittedField) => (
+          submittedField === 'username' && message === policy?.username?.description
+        ) || (
+          submittedField === 'zipCode' && message === policy?.zipCode?.description
+        ));
+        const fields = field ? [field] : submittedFields.filter((submittedField) => (
+          submittedField === 'username' || submittedField === 'zipCode'
+        ));
+        if (fields.length) {
+          return res.status(400).json({
+            errors: fields.map((invalidField) => ({
+              field: invalidField,
+              message: invalidField === 'username'
+                ? policy?.username?.description || 'Username does not meet the account requirements.'
+                : policy?.zipCode?.description || 'ZIP code does not meet the account requirements.',
+            })),
+          });
         }
       }
       console.error('Could not update the Supabase profile:', error);
@@ -337,14 +324,8 @@ router.put('/me/preferences', async (req, res) => {
 
   const errors = [];
   const budget = preferences.budget;
-  if (budget !== null && (
-    typeof budget !== 'number' ||
-    !Number.isFinite(budget) ||
-    budget < 1 ||
-    budget > 100 ||
-    Math.round(budget * 100) !== budget * 100
-  )) {
-    errors.push({ field: 'budget', message: 'Enter a budget from $1 to $100, with up to two decimal places, or leave it blank.' });
+  if (budget !== null && (typeof budget !== 'number' || !Number.isFinite(budget))) {
+    errors.push({ field: 'budget', message: 'Enter a numeric budget or leave it blank.' });
   }
 
   const goal = preferences.goal;
@@ -361,12 +342,14 @@ router.put('/me/preferences', async (req, res) => {
     errors.push({ field: 'limitRecommendations', message: 'Choose whether to limit recommendations by distance.' });
   }
   const radiusValue = preferences.radiusMiles;
-  const radiusMiles = radiusValue === 'infinity' ? null : Number(radiusValue);
-  if (
-    radiusValue !== 'infinity' &&
-    (!Number.isInteger(radiusMiles) || radiusMiles < 1 || radiusMiles > 100)
-  ) {
-    errors.push({ field: 'radiusMiles', message: 'Enter a radius from 1 to 100 miles, or choose any distance.' });
+  if (radiusValue !== 'infinity' && typeof radiusValue !== 'string') {
+    errors.push({ field: 'radiusMiles', message: 'Enter a numeric radius or choose any distance.' });
+  }
+  const radiusMiles = typeof radiusValue === 'string' && radiusValue !== 'infinity'
+    ? Number(radiusValue)
+    : null;
+  if (radiusValue !== 'infinity' && typeof radiusValue === 'string' && !Number.isFinite(radiusMiles)) {
+    errors.push({ field: 'radiusMiles', message: 'Enter a numeric radius or choose any distance.' });
   }
   if (errors.length) return res.status(400).json({ errors });
 
@@ -384,13 +367,16 @@ router.put('/me/preferences', async (req, res) => {
       .select('recommendation_budget, recommendation_goal, excluded_allergens, limit_recommendations, recommendation_radius_miles')
       .maybeSingle();
     if (error) {
-      if (error.code === '23514') {
-        const message = error.message || '';
-        const field = message.includes('budget') ? 'budget'
-          : message.includes('radius') ? 'radiusMiles'
-            : message.includes('goal') ? 'goal'
-              : 'excludedAllergens';
-        return res.status(400).json({ errors: [{ field, message }] });
+      if (databaseValidationErrors.has(error.code)) {
+        const field = preferenceValidationField(error);
+        if (field) {
+          return res.status(400).json({
+            errors: [{ field, message: 'This value is not allowed by the account preferences settings.' }],
+          });
+        }
+        return res.status(400).json({
+          error: 'One or more preference values are not allowed by the account preferences settings.',
+        });
       }
       if (error.code === '23505') {
         return res.status(400).json({ errors: [{ field: 'excludedAllergens', message: 'Remove duplicate dietary restrictions.' }] });
