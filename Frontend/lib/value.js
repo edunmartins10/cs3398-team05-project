@@ -42,6 +42,7 @@ const sodium = combineNutrient('sodium');
         fiber,
         sodium,
         source: a.source,
+        budgetUtilization: budget > 0 ? price / budget : 0,
         cpd: calories / (price / 100),
         ppd: protein / (price / 100),
       });
@@ -95,8 +96,6 @@ export function rank(all, goal, orderHistory = []) {
         ? baseScore + historyScore(x, orderHistory)
         : goal === 'dietary'
           ? dietaryScore ?? -Infinity
-          : goal === 'price'
-            ? -x.price
             : goal === 'protein'
               ? x.ppd
               : goal === 'calories'
@@ -109,7 +108,7 @@ export function rank(all, goal, orderHistory = []) {
   : all;
 
 return eligible.sort(
-  (a, b) => b.score - a.score || a.price - b.price || a.name.localeCompare(b.name)
+  (a, b) => b.score - a.score || b.budgetUtilization - a.budgetUtilization || a.name.localeCompare(b.name)
 );
 }
 
@@ -161,12 +160,19 @@ export function rankedOrders(menu, selected, budgetDollars, minimum, combos, goa
 export function ratioLabel(x, goal) {
   if (goal === 'protein') return x.ppd.toFixed(1) + 'g protein / $';
   if (goal === 'calories') return Math.round(x.cpd) + ' cal / $';
-  if (goal === 'price') return money(x.price) + ' total';
   if (goal === 'personalized') {
   return Math.round(x.score) + ' personalized score';
 }
   return Math.round(x.score) + '/100 value score';
 }
+
+export const WINNER_LABELS = {
+  balanced: 'BEST BALANCED VALUE',
+  protein: 'MOST PROTEIN PER DOLLAR',
+  calories: 'MOST CALORIES PER DOLLAR',
+  personalized: 'RECOMMENDED FOR YOU',
+  dietary: 'BEST DIETARY SCORE',
+};
 
 export function winnerMetric(w, goal) {
   if (goal === 'dietary') {
@@ -178,7 +184,6 @@ export function winnerMetric(w, goal) {
 
   if (goal === 'protein') return { value: w.ppd.toFixed(1) + 'g', label: 'protein per dollar' };
   if (goal === 'calories') return { value: Math.round(w.cpd), label: 'calories per dollar' };
-  if (goal === 'price') return { value: money(w.price), label: 'order total' };
   if (goal === 'personalized') {
   return {
     value: Math.round(w.score),
