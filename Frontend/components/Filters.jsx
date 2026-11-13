@@ -4,6 +4,7 @@ export default function Filters({
   budget,
   onBudgetChange,
   goal,
+  recommendationGoals,
   onGoalChange,
   minimum,
   onMinimumChange,
@@ -38,11 +39,9 @@ export default function Filters({
 
       <label className="control-title" htmlFor="goal">What matters most?</label>
       <select id="goal" value={goal} onChange={(e) => onGoalChange(e.target.value)}>
-        <option value="balanced">Balanced value</option>
-        <option value="protein">Protein per dollar</option>
-        <option value="calories">Calories per dollar</option>
-        <option value="dietary">Dietary score</option>
-        <option value="personalized">Personalized recommendations</option>
+        {recommendationGoals.map(({ goal_key, label }) => (
+          <option key={goal_key} value={goal_key}>{label}</option>
+        ))}
       </select>
 
       <label className="control-title" htmlFor="minimum">Minimum calories</label>

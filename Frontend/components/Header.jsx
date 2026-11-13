@@ -1,7 +1,7 @@
 import { Link, NavLink } from 'react-router-dom';
 import AuthDialog from './AuthDialog.jsx';
 import { useEffect, useState } from 'react';
-import { api, postJson } from '../lib/api.js';
+import { api, AUTH_CHANGED_EVENT, PROFILE_UPDATED_EVENT, postJson } from '../lib/api.js';
 import { MdAccountCircle } from "react-icons/md";
 import DonationDialog from './DonationDialog.jsx';
 import { FaUserCog, FaInfoCircle } from "react-icons/fa";
@@ -28,9 +28,18 @@ export default function Header() {
     loadProfile();
   }, []);
 
+  useEffect(() => {
+    function updateProfile(event) {
+      setProfile((current) => ({ ...current, ...event.detail }));
+    }
+    window.addEventListener(PROFILE_UPDATED_EVENT, updateProfile);
+    return () => window.removeEventListener(PROFILE_UPDATED_EVENT, updateProfile);
+  }, []);
+
   async function signedIn() {
     const data = await api('/api/auth/me');
     setProfile(data.profile || null);
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
     setAuthOpen(false);
     setNotice(`Welcome back, ${data.profile?.username || 'friend'}.`);
     setNoticeError(false);
@@ -43,6 +52,7 @@ export default function Header() {
       // Keep the local view in sync even if the request fails.
     }
     setProfile(null);
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
     setNotice('You have been logged out.');
     setNoticeError(false);
   }

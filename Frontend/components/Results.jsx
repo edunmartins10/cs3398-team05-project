@@ -1,17 +1,16 @@
 import {
   money,
   ratioLabel,
-  WINNER_LABELS,
   winnerMetric,
 } from "../lib/value.js";
 import "./Results.css";
 
-function Winner({ order, goal, budgetCents, distance, onOrder }) {
+function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder }) {
   const metric = winnerMetric(order, goal);
 
   return (
     <article className="winner">
-      <span className="badge">✦ {WINNER_LABELS[goal]}</span>
+      <span className="badge">✦ {goalLabel}</span>
       <div className="winner-top">
         <div>
           <div className="restaurant">
@@ -68,6 +67,7 @@ function Winner({ order, goal, budgetCents, distance, onOrder }) {
 export default function Results({
   list,
   goal,
+  goalLabel,
   budgetDollars,
   distances = {},
   profile,
@@ -111,6 +111,7 @@ export default function Results({
           <Winner
             order={list[0]}
             goal={goal}
+            goalLabel={goalLabel}
             budgetCents={budgetCents}
             distance={distances[list[0].restaurant]}
             onOrder={onOrder}

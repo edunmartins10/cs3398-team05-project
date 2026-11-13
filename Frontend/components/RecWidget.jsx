@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { WINNER_LABELS, winnerMetric, money } from '../lib/value.js';
+import { winnerMetric, money } from '../lib/value.js';
 import './RecWidget.css';
 
-export default function RecWidget({ order, goal }) {
+export default function RecWidget({ order, goal, goalLabel }) {
   const [open, setOpen] = useState(true);
   const [pos, setPos] = useState(null); // null = default bottom-right corner
   const widgetRef = useRef(null);
@@ -57,7 +57,7 @@ export default function RecWidget({ order, goal }) {
           ⋮⋮
         </span>
         <button type="button" className="rec-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
-          <span>✦ {WINNER_LABELS[goal]}</span>
+          <span>✦ {goalLabel}</span>
           <span>{open ? '–' : '+'}</span>
         </button>
       </div>

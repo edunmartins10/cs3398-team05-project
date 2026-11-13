@@ -16,10 +16,10 @@ export function userDatabase(accessToken) {
   });
 }
 
-export async function authenticatedSupabaseSession(req, res) {
+export async function authenticatedSupabaseSession(req, res, resource = 'order history') {
   const accessToken = req.cookies?.bitewise_session;
   if (!accessToken) {
-    res.status(401).json({ error: 'Log in to access your order history.' });
+    res.status(401).json({ error: `Log in to access your ${resource}.` });
     return null;
   }
 
@@ -29,12 +29,12 @@ export async function authenticatedSupabaseSession(req, res) {
     ({ data, error } = await supabase.auth.getUser(accessToken));
   } catch (requestError) {
     console.error('Could not retrieve the Supabase user:', requestError);
-    res.status(502).json({ error: 'Could not retrieve your order history.' });
+    res.status(502).json({ error: `Could not retrieve your ${resource}.` });
     return null;
   }
   if (error || !data.user) {
     res.clearCookie('bitewise_session');
-    res.status(401).json({ error: 'Log in to access your order history.' });
+    res.status(401).json({ error: `Log in to access your ${resource}.` });
     return null;
   }
   return { accessToken, user: data.user };

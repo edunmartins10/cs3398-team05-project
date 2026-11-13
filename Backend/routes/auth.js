@@ -1,7 +1,22 @@
 import { Router } from 'express';
-import { SUPABASE_URL, supabase, userDatabase } from '../services/supabase.js';
+import {
+  authenticatedSupabaseSession,
+  SUPABASE_URL,
+  supabase,
+  userDatabase,
+} from '../services/supabase.js';
 
 const router = Router();
+const databaseValidationErrors = new Set(['22P02', '22001', '22003', '23514', 'P0001']);
+
+function preferenceValidationField(error) {
+  const message = `${error.message || ''} ${error.details || ''}`.toLowerCase();
+  if (message.includes('budget')) return 'budget';
+  if (message.includes('radius')) return 'radiusMiles';
+  if (message.includes('goal')) return 'goal';
+  if (message.includes('allergen') || message.includes('restriction')) return 'excludedAllergens';
+  return null;
+}
 
 async function validateSignupProfile(usernameValue, zipCodeValue) {
   const { data: policy, error: policyError } = await supabase.rpc('get_signup_policy');
@@ -94,6 +109,34 @@ router.post('/signup-policy/username-availability', async (req, res) => {
   return res.json({ available: data === true });
 });
 
+router.get('/preferences/options', async (req, res) => {
+  try {
+    const [goals, restrictions] = await Promise.all([
+      supabase
+        .from('recommendation_goal_options')
+        .select('goal_key, label, winner_label')
+        .eq('enabled', true)
+        .order('sort_order'),
+      supabase
+        .from('dietary_restriction_options')
+        .select('restriction_key, label')
+        .eq('enabled', true)
+        .order('sort_order'),
+    ]);
+    if (goals.error || restrictions.error) {
+      console.error('Could not retrieve account preference options from Supabase:', goals.error || restrictions.error);
+      return res.status(502).json({ error: 'Could not load preference options. Check the Supabase account-preferences setup.' });
+    }
+    return res.json({
+      recommendationGoals: goals.data,
+      dietaryRestrictions: restrictions.data,
+    });
+  } catch (requestError) {
+    console.error('Could not retrieve account preference options from Supabase:', requestError);
+    return res.status(502).json({ error: 'Could not load preference options. Check the Supabase account-preferences setup.' });
+  }
+});
+
 router.get('/me', async (req, res) => {
   const accessToken = req.cookies?.bitewise_session;
   if (!accessToken) return res.json({ profile: null });
@@ -123,7 +166,7 @@ router.get('/me', async (req, res) => {
   try {
     const result = await userDatabase(accessToken)
       .from('profiles')
-      .select('username, home_zip, phone_number')
+      .select('username, home_zip, phone_number, recommendation_budget, recommendation_goal, excluded_allergens, limit_recommendations, recommendation_radius_miles')
       .eq('id', user.id)
       .maybeSingle();
     if (result.error) {
@@ -137,16 +180,24 @@ router.get('/me', async (req, res) => {
   }
   return res.json({
     profile: {
-      username: profileData?.username || metadata.username || user.email || '',
+      username: profileData ? profileData.username : metadata.username || user.email || '',
       email: user.email || '',
-      zipCode: profileData?.home_zip || metadata.home_zip || metadata.zipCode || '',
+      zipCode: profileData ? profileData.home_zip : metadata.home_zip || metadata.zipCode || '',
       latitude: metadata.latitude ?? null,
       longitude: metadata.longitude ?? null,
-      phone: profileData?.phone_number || metadata.phone || '',
+      phone: profileData ? profileData.phone_number || '' : metadata.phone || '',
       textUpdates: metadata.textUpdates === true,
-      limitRecommendations: metadata.limitRecommendations !== false,
-      radiusMiles: metadata.radiusMiles || '5',
-      recommendationPreferences: metadata.recommendationPreferences || null,
+      limitRecommendations: profileData
+        ? profileData.limit_recommendations
+        : metadata.limitRecommendations === true,
+      radiusMiles: profileData
+        ? profileData.recommendation_radius_miles == null ? 'infinity' : String(profileData.recommendation_radius_miles)
+        : metadata.radiusMiles || '10',
+      recommendationPreferences: profileData ? {
+        budget: profileData.recommendation_budget,
+        goal: profileData.recommendation_goal,
+        excludedAllergens: profileData.excluded_allergens || [],
+      } : null,
       notifications: metadata.notifications || null,
       createdAt: user.created_at || null,
       lastSignInAt: user.last_sign_in_at || null,
@@ -154,6 +205,200 @@ router.get('/me', async (req, res) => {
       linkedProviders: (user.identities || []).map((identity) => identity.provider),
     },
   });
+});
+
+router.put('/me', async (req, res) => {
+  const session = await authenticatedSupabaseSession(req, res, 'account information');
+  if (!session) return;
+
+  const allowedFields = new Set(['username', 'zipCode', 'phone']);
+  const submittedFields = Object.keys(req.body || {});
+  if (!submittedFields.length || submittedFields.some((field) => !allowedFields.has(field))) {
+    return res.status(400).json({ error: 'Submit one or more supported account fields.' });
+  }
+
+  const inputErrors = [];
+  for (const field of submittedFields) {
+    if (typeof req.body[field] !== 'string') {
+      inputErrors.push({ field, message: `Enter a valid ${field === 'zipCode' ? 'ZIP code' : field === 'phone' ? 'phone number' : 'username'}.` });
+    }
+  }
+  if (inputErrors.length) {
+    return res.status(400).json({ errors: inputErrors });
+  }
+
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const zipCode = typeof req.body.zipCode === 'string' ? req.body.zipCode.trim() : '';
+  const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : '';
+
+  const profileUpdates = {};
+  if (submittedFields.includes('username')) profileUpdates.username = username;
+  if (submittedFields.includes('zipCode')) profileUpdates.home_zip = zipCode;
+  if (submittedFields.includes('phone')) profileUpdates.phone_number = phone || null;
+
+  try {
+    const { data, error } = await userDatabase(session.accessToken)
+      .from('profiles')
+      .update(profileUpdates)
+      .eq('id', session.user.id)
+      .select('username, home_zip, phone_number')
+      .maybeSingle();
+
+    if (error) {
+      if (error.code === '23505' && submittedFields.includes('username')) {
+        return res.status(400).json({
+          errors: [{ field: 'username', message: 'That username is already in use.' }],
+        });
+      }
+      if (databaseValidationErrors.has(error.code)) {
+        let policy;
+        try {
+          const result = await supabase.rpc('get_signup_policy');
+          if (result.error) throw result.error;
+          policy = result.data;
+        } catch (policyError) {
+          console.error('Could not retrieve profile validation messages from Supabase:', policyError);
+        }
+
+        const message = error.message || '';
+        const field = submittedFields.find((submittedField) => (
+          submittedField === 'username' && message === policy?.username?.description
+        ) || (
+          submittedField === 'zipCode' && message === policy?.zipCode?.description
+        ));
+        const fields = field ? [field] : submittedFields.filter((submittedField) => (
+          submittedField === 'username' || submittedField === 'zipCode'
+        ));
+        if (fields.length) {
+          return res.status(400).json({
+            errors: fields.map((invalidField) => ({
+              field: invalidField,
+              message: invalidField === 'username'
+                ? policy?.username?.description || 'Username does not meet the account requirements.'
+                : policy?.zipCode?.description || 'ZIP code does not meet the account requirements.',
+            })),
+          });
+        }
+      }
+      console.error('Could not update the Supabase profile:', error);
+      return res.status(502).json({ error: 'Your account information could not be saved. Please try again.' });
+    }
+    if (!data) {
+      return res.status(404).json({ error: 'Your account profile could not be found.' });
+    }
+
+    return res.json({
+      profile: {
+        username: data.username,
+        zipCode: data.home_zip,
+        phone: data.phone_number || '',
+      },
+    });
+  } catch (requestError) {
+    console.error('Could not update the Supabase profile:', requestError);
+    return res.status(502).json({ error: 'Your account information could not be saved. Please try again.' });
+  }
+});
+
+router.put('/me/preferences', async (req, res) => {
+  const session = await authenticatedSupabaseSession(req, res, 'account preferences');
+  if (!session) return;
+
+  const preferences = req.body?.preferences;
+  const allowedFields = new Set([
+    'budget',
+    'goal',
+    'excludedAllergens',
+    'limitRecommendations',
+    'radiusMiles',
+  ]);
+  const submittedFields = preferences && typeof preferences === 'object' && !Array.isArray(preferences)
+    ? Object.keys(preferences)
+    : [];
+  if (
+    submittedFields.length !== allowedFields.size ||
+    submittedFields.some((field) => !allowedFields.has(field))
+  ) {
+    return res.status(400).json({ error: 'Submit all supported preference fields.' });
+  }
+
+  const errors = [];
+  const budget = preferences.budget;
+  if (budget !== null && (typeof budget !== 'number' || !Number.isFinite(budget))) {
+    errors.push({ field: 'budget', message: 'Enter a numeric budget or leave it blank.' });
+  }
+
+  const goal = preferences.goal;
+  if (typeof goal !== 'string') {
+    errors.push({ field: 'goal', message: 'Choose a recommendation goal from the available options.' });
+  }
+
+  const selectedRestrictions = preferences.excludedAllergens;
+  if (!Array.isArray(selectedRestrictions) || selectedRestrictions.some((option) => typeof option !== 'string')) {
+    errors.push({ field: 'excludedAllergens', message: 'Choose dietary restrictions from the available options.' });
+  }
+  const limitRecommendations = preferences.limitRecommendations;
+  if (typeof limitRecommendations !== 'boolean') {
+    errors.push({ field: 'limitRecommendations', message: 'Choose whether to limit recommendations by distance.' });
+  }
+  const radiusValue = preferences.radiusMiles;
+  if (radiusValue !== 'infinity' && typeof radiusValue !== 'string') {
+    errors.push({ field: 'radiusMiles', message: 'Enter a numeric radius or choose any distance.' });
+  }
+  const radiusMiles = typeof radiusValue === 'string' && radiusValue !== 'infinity'
+    ? Number(radiusValue)
+    : null;
+  if (radiusValue !== 'infinity' && typeof radiusValue === 'string' && !Number.isFinite(radiusMiles)) {
+    errors.push({ field: 'radiusMiles', message: 'Enter a numeric radius or choose any distance.' });
+  }
+  if (errors.length) return res.status(400).json({ errors });
+
+  try {
+    const { data, error } = await userDatabase(session.accessToken)
+      .from('profiles')
+      .update({
+        recommendation_budget: budget,
+        recommendation_goal: goal,
+        excluded_allergens: selectedRestrictions,
+        limit_recommendations: limitRecommendations,
+        recommendation_radius_miles: radiusMiles,
+      })
+      .eq('id', session.user.id)
+      .select('recommendation_budget, recommendation_goal, excluded_allergens, limit_recommendations, recommendation_radius_miles')
+      .maybeSingle();
+    if (error) {
+      if (databaseValidationErrors.has(error.code)) {
+        const field = preferenceValidationField(error);
+        if (field) {
+          return res.status(400).json({
+            errors: [{ field, message: 'This value is not allowed by the account preferences settings.' }],
+          });
+        }
+        return res.status(400).json({
+          error: 'One or more preference values are not allowed by the account preferences settings.',
+        });
+      }
+      if (error.code === '23505') {
+        return res.status(400).json({ errors: [{ field: 'excludedAllergens', message: 'Remove duplicate dietary restrictions.' }] });
+      }
+      console.error('Could not update Supabase account preferences:', error);
+      return res.status(502).json({ error: 'Your preferences could not be saved. Please try again.' });
+    }
+    if (!data) return res.status(404).json({ error: 'Your account profile could not be found.' });
+
+    return res.json({
+      recommendationPreferences: {
+        budget: data.recommendation_budget,
+        goal: data.recommendation_goal,
+        excludedAllergens: data.excluded_allergens,
+        limitRecommendations: data.limit_recommendations,
+        radiusMiles: data.recommendation_radius_miles == null ? 'infinity' : String(data.recommendation_radius_miles),
+      },
+    });
+  } catch (requestError) {
+    console.error('Could not update Supabase account preferences:', requestError);
+    return res.status(502).json({ error: 'Your preferences could not be saved. Please try again.' });
+  }
 });
 
 router.post('/register', async (req, res) => {
@@ -175,8 +420,8 @@ router.post('/register', async (req, res) => {
           home_zip: req.body?.zipCode,
           phone,
           textUpdates,
-          limitRecommendations: true,
-          radiusMiles: '5',
+          limitRecommendations: false,
+          radiusMiles: '10',
         },
       },
     }));
