@@ -34,7 +34,7 @@ export default function RestaurantMap({ name, location, distance, onClose }) {
   }, [hasPin, latitude, longitude, name]);
 
   return (
-    <dialog ref={dialog} className="restaurant-map" aria-labelledby="map-title" onCancel={onClose}>
+    <dialog ref={dialog} className="restaurant-map absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" aria-labelledby="map-title" onCancel={onClose}>
       <div className="dialoghead">
         <h2 id="map-title">{name}</h2>
         <button type="button" onClick={onClose} aria-label="Close map">×</button>
