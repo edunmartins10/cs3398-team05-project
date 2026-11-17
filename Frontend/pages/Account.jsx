@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import { User, Phone, Bell, RotateCcwClock, Save, Settings2, Shield } from 'lucide-react';
-import { api, AUTH_CHANGED_EVENT, PROFILE_UPDATED_EVENT, putJson } from '../lib/api.js';
+import { api, AUTH_CHANGED_EVENT, PROFILE_UPDATED_EVENT, postJson, putJson } from '../lib/api.js';
 import Footer from '../components/Footer.jsx';
 import OrderHistory from '../components/OrderHistory.jsx';
+import SavedOrders from '../components/SavedOrders.jsx';
+import { toggleSavedOrder } from '../lib/savedOrders.js';
 
 const tabs = [
   { id: 'account', label: 'Account', Icon: User },
@@ -64,6 +66,9 @@ export default function AccountPage() {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
+  const [savedOrders, setSavedOrders] = useState([]);
+  const [savedOrdersLoading, setSavedOrdersLoading] = useState(true);
+  const [savedOrdersError, setSavedOrdersError] = useState('');
   const [activeTab, setActiveTab] = useState(() => (
     tabs.some(({ id }) => id === requestedTab) ? requestedTab : 'account'
   ));
@@ -102,6 +107,9 @@ export default function AccountPage() {
       setOrders([]);
       setOrdersLoading(true);
       setOrdersError('');
+      setSavedOrders([]);
+      setSavedOrdersLoading(true);
+      setSavedOrdersError('');
       try {
         const data = await api('/api/auth/me');
         if (!isCurrentRequest()) return;
@@ -131,6 +139,7 @@ export default function AccountPage() {
         }
         if (!data.profile) {
           setOrdersLoading(false);
+          setSavedOrdersLoading(false);
           return;
         }
 
@@ -141,6 +150,14 @@ export default function AccountPage() {
           if (isCurrentRequest()) setOrdersError(error.message);
         } finally {
           if (isCurrentRequest()) setOrdersLoading(false);
+        }
+        try {
+          const saved = await api('/api/auth/saved-orders');
+          if (isCurrentRequest()) setSavedOrders(saved.savedOrders || []);
+        } catch (error) {
+          if (isCurrentRequest()) setSavedOrdersError(error.message);
+        } finally {
+          if (isCurrentRequest()) setSavedOrdersLoading(false);
         }
       } catch (error) {
         if (isCurrentRequest()) setProfileError(error.message);
@@ -177,6 +194,46 @@ export default function AccountPage() {
     if (activeTab === 'account' && tabId !== 'account') setAccountFeedback(null);
     if (activeTab === 'address_and_phone' && tabId !== 'address_and_phone') setAddressFeedback(null);
     setActiveTab(tabId);
+  }
+
+  async function toggleFavoriteFromHistory(order) {
+    const items = (Array.isArray(order.order_items) ? order.order_items : []).map((item) => ({
+      name: item.item_name,
+      price: Math.round(Number(item.price_at_time || 0) * 100),
+      calories: Number(item.calories || 0),
+      protein: Number(item.protein_g || 0),
+    }));
+    const result = await toggleSavedOrder({
+      name: items.map((item) => item.name).join(' + '),
+      restaurant: order.restaurant_name,
+      items,
+    });
+    setSavedOrders(result.savedOrders);
+    return result;
+  }
+
+  async function deleteSavedOrder(order) {
+    await api(`/api/auth/saved-orders/${encodeURIComponent(order.id)}`, { method: 'DELETE' });
+    setSavedOrders((current) => current.filter(({ id }) => id !== order.id));
+  }
+
+  async function reorderSavedOrder(order) {
+    await postJson('/api/auth/orders', {
+      restaurant: order.restaurant_name,
+      items: order.items.map((item) => ({
+        name: item.name,
+        price: item.price,
+        calories: item.calories,
+        protein: item.protein,
+      })),
+    });
+    try {
+      const history = await api('/api/auth/orders');
+      setOrders(history.orders || []);
+      setOrdersError('');
+    } catch (error) {
+      setOrdersError(error.message);
+    }
   }
 
   async function saveAccount(event, fields, form) {
@@ -298,8 +355,14 @@ export default function AccountPage() {
               <p className="py-4 text-center text-[#63726c]" role="status">Loading your account…</p>
             ) : !profile ? (
               <div>
-                <h2 className="account-panel-title border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Account</h2>
-                <p className="py-4 text-[#63726c]">Create an account to view your account information.</p>
+                <h2 className="account-panel-title border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">
+                  {activeTab === 'saved_orders' ? 'Saved Orders' : 'Account'}
+                </h2>
+                <p className="py-4 text-[#63726c]">
+                  {activeTab === 'saved_orders'
+                    ? 'Log in using the account menu to view and manage your saved orders.'
+                    : 'Create an account or log in using the account menu to view your account information.'}
+                </p>
               </div>
             ) : (
               <>
@@ -359,16 +422,24 @@ export default function AccountPage() {
                 )}
 
                 {activeTab === 'order_history' && (
-                  <OrderHistory profile={profile} orders={orders} loading={ordersLoading} error={ordersError} />
+                  <OrderHistory
+                    profile={profile}
+                    orders={orders}
+                    savedOrders={savedOrders}
+                    loading={ordersLoading}
+                    error={ordersError}
+                    onToggleFavorite={toggleFavoriteFromHistory}
+                  />
                 )}
 
                 {activeTab === 'saved_orders' && (
-                  <div>
-                    <h2 className="account-panel-title border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Saved Orders</h2>
-                    <p className="py-4 text-[#63726c]">
-                      Separate saved orders are not currently stored for this account. Your completed orders are available in Order History.
-                    </p>
-                  </div>
+                  <SavedOrders
+                    orders={savedOrders}
+                    loading={savedOrdersLoading}
+                    error={savedOrdersError}
+                    onReorder={reorderSavedOrder}
+                    onDelete={deleteSavedOrder}
+                  />
                 )}
 
                 {activeTab === 'preferences' && (

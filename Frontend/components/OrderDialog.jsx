@@ -10,13 +10,13 @@ export default function OrderDialog({ item, onConfirm, onClose }) {
     if (item) setError('');
   }, [item]);
 
-  async function confirm() {
+  async function runAction(callback) {
     setSaving(true);
     setError('');
     try {
-      await onConfirm(item);
+      await callback(item);
     } catch (err) {
-      setError(err.message || 'Your order history could not be saved. Please try again.');
+      setError(err.message || 'Your order could not be saved. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -35,8 +35,8 @@ export default function OrderDialog({ item, onConfirm, onClose }) {
           </div>
           <p><strong>{item.name}</strong> from {item.restaurant}</p>
           {error && <div className="form-error" role="alert">{error}</div>}
-          <button className="primary" type="button" onClick={confirm} disabled={saving}>
-            {saving ? 'Saving…' : 'Yes, add to my order history'}
+          <button className="primary" type="button" onClick={() => runAction(onConfirm)} disabled={saving}>
+            {saving ? 'Saving…' : 'Add to Order History'}
           </button>
           <button className="text-button" type="button" onClick={onClose} disabled={saving}>Not now</button>
         </>

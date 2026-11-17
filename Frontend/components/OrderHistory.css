@@ -1,0 +1,13 @@
+.order-history-price-actions {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 36px;
+  justify-items: end;
+}
+
+.order-history-price-actions strong {
+  align-self: center;
+}
+
+.order-history-price-actions .favorite-toggle-button {
+  align-self: end;
+}

@@ -3,15 +3,18 @@ import {
   ratioLabel,
   winnerMetric,
 } from "../lib/value.js";
+import { findSavedOrder } from "../lib/savedOrders.js";
+import FavoriteToggle from './FavoriteToggle.jsx';
 import "./Results.css";
 
-function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder }) {
+function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder, savedOrders, onToggleFavorite }) {
   const metric = winnerMetric(order, goal);
+  const isFavorite = Boolean(findSavedOrder(savedOrders, order));
 
   return (
     <article className="winner">
       <span className="badge">✦ {goalLabel}</span>
-      <div className="winner-top">
+      <div className="winner-top winner-top-centered">
         <div>
           <div className="restaurant">
             {order.restaurant} ·{" "}
@@ -53,13 +56,12 @@ function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder }) {
           : "Based on the prices and nutrition you entered."}
       </p>
 
-      <button
-        type="button"
-        className="mt-4 rounded-md border hover:bg-[#13543c] transition duration-300 px-4 py-2"
-        onClick={() => onOrder(order)}
-      >
-        Add to Order
-      </button>
+      <div className="winner-actions">
+        <button type="button" className="order-button" onClick={() => onOrder(order)}>
+          Add to Order
+        </button>
+        <FavoriteToggle isFavorite={isFavorite} onToggle={() => onToggleFavorite(order)} />
+      </div>
     </article>
   );
 }
@@ -72,6 +74,8 @@ export default function Results({
   distances = {},
   profile,
   onOrder,
+  savedOrders = [],
+  onToggleFavorite,
   allergenRestrictionsActive,
 }) {
   const raw = Number(budgetDollars);
@@ -115,6 +119,8 @@ export default function Results({
             budgetCents={budgetCents}
             distance={distances[list[0].restaurant]}
             onOrder={onOrder}
+            savedOrders={savedOrders}
+            onToggleFavorite={onToggleFavorite}
           />
         )}
       </div>
@@ -127,7 +133,9 @@ export default function Results({
           </div>
 
           <div>
-            {rest.map((x, i) => (
+            {rest.map((x, i) => {
+              const isFavorite = Boolean(findSavedOrder(savedOrders, x));
+              return (
               <article
                 className="card"
                 key={`${x.restaurant}-${x.name}-${x.price}-${i}`}
@@ -149,17 +157,17 @@ export default function Results({
                     <span>{x.protein}g protein</span>
                     <span className="ratio">{ratioLabel(x, goal)}</span>
                   </div>
-                  <button
-                    type="button"
-                    className="rounded-md border-[#dfe5df] bg-gray-100 transition-all duration-300 hover:bg-gray-100 mt-2 p-2 border"
-                    onClick={() => onOrder(x)}
-                  >
+                  <button type="button" className="order-button" onClick={() => onOrder(x)}>
                     Add to Order
                   </button>
                 </div>
-                <div className="price">{money(x.price)}</div>
+                <div className="card-price-actions">
+                  <div className="price">{money(x.price)}</div>
+                  <FavoriteToggle isFavorite={isFavorite} onToggle={() => onToggleFavorite(x)} />
+                </div>
               </article>
-            ))}
+              );
+            })}
 
             {list.length > 7 && (
               <p className="fine">

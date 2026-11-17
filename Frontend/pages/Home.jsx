@@ -8,8 +8,9 @@ import OrderDialog from '../components/OrderDialog.jsx';
 import RecWidget from '../components/RecWidget.jsx';
 import { createSampleMenu } from '../data/sampleMenu.js';
 import { parseMenu, rankedOrders, restaurantNames } from '../lib/value.js';
-import { api, postJson, putJson } from '../lib/api.js';
+import { api, AUTH_CHANGED_EVENT, postJson, putJson } from '../lib/api.js';
 import { distanceMiles, radiusLimit, restaurantLocations } from '../lib/location.js';
+import { toggleSavedOrder } from '../lib/savedOrders.js';
 import Footer from '../components/Footer.jsx';
 const DEFAULTS = { budget: '10', minimum: '400', combos: true };
 
@@ -24,6 +25,8 @@ export default function HomePage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState('');
   const [profile, setProfile] = useState(null);
+  const [savedOrders, setSavedOrders] = useState([]);
+  const [savedOrdersError, setSavedOrdersError] = useState('');
   const [recommendationGoals, setRecommendationGoals] = useState([]);
   const [dietaryRestrictions, setDietaryRestrictions] = useState([]);
   const [preferenceOptionsError, setPreferenceOptionsError] = useState('');
@@ -71,16 +74,32 @@ export default function HomePage() {
         setPreferenceOptionsError(error.message);
       });
 
-    api('/api/auth/me')
-      .then((data) => {
+    async function loadProfile() {
+      try {
+        const data = await api('/api/auth/me');
         const nextProfile = data.profile || null;
         setProfile(nextProfile);
         setSelectedAllergens(nextProfile?.allergens ?? []);
-      })
-      .catch(() => {
+        if (!nextProfile) {
+          setSavedOrders([]);
+          setSavedOrdersError('');
+          return;
+        }
+        try {
+          const result = await api('/api/auth/saved-orders');
+          setSavedOrders(result.savedOrders || []);
+          setSavedOrdersError('');
+        } catch (error) {
+          setSavedOrdersError(error.message);
+        }
+      } catch {
         setProfile(null);
+        setSavedOrders([]);
         setSelectedAllergens([]);
-      });
+      }
+    }
+    loadProfile();
+    window.addEventListener(AUTH_CHANGED_EVENT, loadProfile);
     const params = new URLSearchParams(window.location.search);
     const donation = params.get('donation');
     if (donation === 'success') { setNotice('Thanks for supporting Bitewise!'); setNoticeError(false); }
@@ -90,6 +109,7 @@ export default function HomePage() {
       const query = params.toString();
       window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
     }
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, loadProfile);
   }, []);
 
   function toggleRestaurant(name, checked) {
@@ -149,6 +169,30 @@ export default function HomePage() {
     setNoticeError(false);
   }
 
+  async function toggleFavoriteOrder(item) {
+    if (!profile) {
+      setNotice('Log in using the account menu to save favorite orders.');
+      setNoticeError(false);
+      return;
+    }
+
+    try {
+      const result = await toggleSavedOrder({
+        name: item.name,
+        restaurant: item.restaurant,
+        items: item.items,
+      });
+      setSavedOrders(result.savedOrders);
+      setNotice(result.isSaved
+        ? `Saved "${item.name}" to your favorite orders.`
+        : `Removed "${item.name}" from your favorite orders.`);
+      setNoticeError(false);
+    } catch (error) {
+      setNotice(error.message || 'The favorite order could not be updated. Please try again.');
+      setNoticeError(true);
+    }
+  }
+
     return (
     <>
       <Header />
@@ -165,6 +209,12 @@ export default function HomePage() {
             </button>
           </div>
         }
+
+        {savedOrdersError && profile && (
+          <p className="mb-4 rounded-lg border border-[#e7c9c4] bg-[#fff4f1] p-3 text-sm text-[#8a2f23]" role="alert">
+            Could not load your saved orders: {savedOrdersError}
+          </p>
+        )}
 
         {notice && 
           <div className={`notice ${noticeError ? 'notice-error' : ''}`} role="status">
@@ -202,7 +252,17 @@ export default function HomePage() {
               }
             }}
           /> : <p className="py-4 text-[#63726c]" role="status">Loading recommendation settings…</p>}
-          <Results list={list} goal={goal} goalLabel={goalLabel} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} onOrder={setOrderItem} />
+          <Results
+            list={list}
+            goal={goal}
+            goalLabel={goalLabel}
+            budgetDollars={budget}
+            distances={distanceByRestaurant}
+            profile={profile}
+            onOrder={setOrderItem}
+            savedOrders={savedOrders}
+            onToggleFavorite={toggleFavoriteOrder}
+          />
         </div>
 
         <Footer />

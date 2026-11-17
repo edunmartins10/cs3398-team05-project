@@ -2,3 +2,13 @@
    .order-button:hover{background:var(--green);color:#fff}
    .winner .order-button{border-color:var(--lime);background:var(--lime);color:var(--ink)}
    .winner .order-button:hover{background:#fff;border-color:#fff;color:var(--ink)}
+   .winner .favorite-toggle-button{background:var(--lime)}
+   .winner .favorite-toggle-button:hover{background:#fff}
+   .winner-actions{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+   .winner-actions .order-button{margin-top:0}
+   .winner-top-centered{align-items:center}
+   .card-price-actions{display:grid;grid-template-rows:minmax(0,1fr) 36px;justify-items:end;align-self:stretch}
+   .card-price-actions .price{align-self:center}
+   .card-price-actions .favorite-toggle-button{align-self:end}
+   @media (max-width: 900px){.winner-top-centered{align-items:flex-start}}
+   @media (max-width: 600px){.winner-top-centered{align-items:center}}

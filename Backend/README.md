@@ -14,6 +14,14 @@ The contents of this directory include our backend logic (such as database, serv
 
 ### Backend/routes/account/
 Order history is handled by `orders.js` at `/api/auth/orders`.
+Saved orders are handled by `saved-orders.js` at `/api/auth/saved-orders`. Apply
+`supabase/migrations/20261117180000_create_saved_orders.sql` and then
+`supabase/migrations/20261117190000_make_saved_orders_unique.sql` to create the
+separate per-user table, its row-level security policies, and its per-user
+favorite uniqueness constraint. The UI refreshes saved orders and uses POST to
+add or DELETE to remove a favorite. POST is idempotent for a matching order.
+Saved-order records store an item snapshot and do not reference or modify
+completed order-history records.
 
 ## Supabase signup profile policy
 
