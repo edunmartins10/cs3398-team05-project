@@ -88,6 +88,9 @@ export default function HomePage() {
         const nextProfile = data.profile || null;
         setProfile(nextProfile);
         setSelectedAllergens(nextProfile?.allergens ?? []);
+        const saved = nextProfile?.recommendationPreferences;
+        if (saved?.budget != null) setBudget(String(saved.budget));
+        if (saved?.goal) setGoal(saved.goal);
       })
       .catch(() => {
         setProfile(null);
