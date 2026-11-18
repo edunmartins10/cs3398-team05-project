@@ -200,3 +200,104 @@ html.dark .budgetinput input {
   color: #f1f5f2;
   border: 1px solid #35483e;
 }
+
+/* Account panels - dark mode */
+html.dark .account-panel {
+  background-color: #1e2b24;
+  color: #f1f5f2;
+  border-color: #35483e;
+}
+
+html.dark .account-panel-title {
+  color: #f1f5f2;
+  border-color: #35483e;
+}
+
+/* Account sidebar - dark mode */
+html.dark .account-tabs {
+  background-color: #1e2b24;
+  border-color: #35483e;
+}
+
+/* Sidebar navigation text */
+html.dark .account-tab {
+  color: #a9b9b0;
+}
+
+/* Selected sidebar tab */
+html.dark .account-tab[aria-current="page"] {
+  background-color: #35483e;
+  color: #65c99a;
+}
+
+/* Sidebar hover */
+html.dark .account-tab:hover {
+  background-color: #35483e;
+  color: #f1f5f2;
+}
+
+/* Account dropdown text */
+html.dark .account-page select,
+html.dark .account-page input:not([type="checkbox"]) {
+  background-color: #293b30;
+  color: #f1f5f2;
+  border-color: #a9b9b0;
+}
+
+html.dark .account-page select option {
+  background-color: #293b30;
+  color: #f1f5f2;
+}
+
+/* FAQ page - dark mode */
+html.dark .faq-item summary {
+  color: #f1f5f2;
+}
+
+html.dark .faq-item > p,
+html.dark .info-lede {
+  color: #a9b9b0;
+}
+
+html.dark .faq-toggle {
+  color: #65c99a;
+}
+
+html.dark .faq-item,
+html.dark .info-heading {
+  border-color: #35483e;
+}
+
+/* Recommendation cards - dark mode */
+html.dark .card {
+  background-color: #1e2b24;
+  border-color: #a9b9b0;
+}
+
+html.dark .card h3,
+html.dark .card .price {
+  color: #f1f5f2;
+}
+
+html.dark .card .restaurant,
+html.dark .card .stats {
+  color: #a9b9b0;
+}
+
+html.dark .card .stats .ratio {
+  color: #65c99a;
+}
+
+/* Restaurant selector - dark mode */
+html.dark select#restaurants,
+html.dark #restaurants select {
+  background-color: #293b30;
+  color: #f1f5f2;
+  border-color: #a9b9b0;
+}
+
+html.dark #restaurants option,
+html.dark #restaurants select option {
+  background-color: #293b30;
+  color: #f1f5f2;
+}
