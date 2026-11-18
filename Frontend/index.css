@@ -748,6 +748,38 @@ dialog::backdrop {
   margin-top: 8px;
 }
 
+.restaurant-map {
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+}
+
+.map-canvas {
+  width: 100%;
+  height: min(58vh, 460px);
+  min-height: 260px;
+  border-radius: 8px;
+  background: #e9eeee;
+}
+
+.restaurant-pin {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+.restaurant-pin::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #176447;
+  border-radius: 50%;
+  background: #dfff80;
+  box-shadow: 0 1px 5px #172b2580;
+  content: '';
+}
+
 .close {
   border: 0;
   background: #eef2ec;

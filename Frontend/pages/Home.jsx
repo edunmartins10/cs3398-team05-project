@@ -9,8 +9,9 @@ import RecWidget from '../components/RecWidget.jsx';
 import { createSampleMenu } from '../data/sampleMenu.js';
 import { parseMenu, rankedOrders, restaurantNames } from '../lib/value.js';
 import { api, postJson, putJson } from '../lib/api.js';
-import { distanceMiles, radiusLimit, restaurantLocations } from '../lib/location.js';
+import { distanceMiles, validLocation, radiusLimit, restaurantLocations } from '../lib/location.js';
 import Footer from '../components/Footer.jsx';
+import RestaurantMap from '../components/RestaurantMap.jsx';
 const DEFAULTS = { budget: '10', minimum: '400', combos: true };
 
 export default function HomePage() {
@@ -32,6 +33,17 @@ export default function HomePage() {
   const [orderItem, setOrderItem] = useState(null);
   const names = useMemo(() => restaurantNames(menu), [menu]);
   const goalLabel = recommendationGoals.find((option) => option.goal_key === goal)?.winner_label || '';
+  // 
+  const [deviceLocation, setDeviceLocation] = useState(null);
+  const [radiusOverride, setRadiusOverride] = useState(null);
+  const [gpsStatus, setGpsStatus] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [mapName, setMapName] = useState(null);
+  const origin = deviceLocation || (validLocation(profile) ? profile : null);
+  const radius = radiusOverride ?? radiusLimit(profile);
+  const locations = useMemo(() => Object.fromEntries(names.map((name) => [
+    name, menu.find((item) => item.restaurant === name && validLocation(item)) || restaurantLocations[name],
+  ])), [names, menu]);
   const itemCounts = useMemo(() => {
     const counts = {};
     for (const item of menu) counts[item.restaurant] = (counts[item.restaurant] || 0) + 1;
@@ -202,12 +214,13 @@ export default function HomePage() {
               }
             }}
           /> : <p className="py-4 text-[#63726c]" role="status">Loading recommendation settings…</p>}
-          <Results list={list} goal={goal} goalLabel={goalLabel} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} onOrder={setOrderItem} />
+          <Results list={list} goal={goal} goalLabel={goalLabel} budgetDollars={budget} distances={distanceByRestaurant} profile={profile} onOrder={setOrderItem} onMap={setMapName} />
         </div>
 
         <Footer />
       </main>
 
+      {mapName && <RestaurantMap name={mapName} location={locations[mapName]} distance={distanceByRestaurant[mapName]} onClose={() => setMapName(null)} />}
       <ImportDialog 
         open={importOpen} 
         onClose={() => setImportOpen(false)} 

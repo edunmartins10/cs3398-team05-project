@@ -27,6 +27,11 @@ export const restaurantLocations = {
   Industry: { latitude: 29.8830, longitude: -97.9410, label: 'San Marcos, TX' },
 };
 
+export function validLocation(point) {
+  return Number.isFinite(point?.latitude) && Math.abs(point.latitude) <= 90 &&
+    Number.isFinite(point?.longitude) && Math.abs(point.longitude) <= 180;
+}
+
 export function distanceMiles(from, to) {
   if (!from || !to || !Number.isFinite(from.latitude) || !Number.isFinite(from.longitude)) return null;
   const radians = (degrees) => (degrees * Math.PI) / 180;

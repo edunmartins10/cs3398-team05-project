@@ -5,7 +5,7 @@ import {
 } from "../lib/value.js";
 import "./Results.css";
 
-function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder }) {
+function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder, onMap }) {
   const metric = winnerMetric(order, goal);
 
   return (
@@ -60,6 +60,9 @@ function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder }) {
       >
         Add to Order
       </button>
+      <button type="button" className="map-button" onClick={() => onMap(order.restaurant)}>
+        View map
+      </button>
     </article>
   );
 }
@@ -72,6 +75,7 @@ export default function Results({
   distances = {},
   profile,
   onOrder,
+  onMap,
   allergenRestrictionsActive,
 }) {
   const raw = Number(budgetDollars);
@@ -115,6 +119,7 @@ export default function Results({
             budgetCents={budgetCents}
             distance={distances[list[0].restaurant]}
             onOrder={onOrder}
+            onMap={onMap}
           />
         )}
       </div>
@@ -155,6 +160,9 @@ export default function Results({
                     onClick={() => onOrder(x)}
                   >
                     Add to Order
+                  </button>
+                  <button type="button" className="map-button" onClick={() => onMap(x.restaurant)}>
+                    View map
                   </button>
                 </div>
                 <div className="price">{money(x.price)}</div>
