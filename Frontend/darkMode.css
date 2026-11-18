@@ -1,0 +1,202 @@
+.dark {
+  color-scheme: dark;
+  --ink: #f1f5f2;
+  --green: #65c99a;
+  --muted: #a9b9b0;
+  --line: #35483e;
+  --bg: #121c17;
+}
+
+/* Header and navigation */
+.dark header,
+.dark .site-nav,
+.dark aside,
+.dark .card {
+  background: #1e2b24;
+  color: var(--ink);
+}
+
+/* Brand and headings */
+.dark .brand,
+.dark h1,
+.dark h2,
+.dark h3,
+.dark .budgetinput {
+  color: var(--ink);
+}
+
+/* Form controls */
+.dark input,
+.dark select,
+.dark textarea {
+  background: #293b30;
+  color: #f1f5f2;
+  border-color: var(--line);
+}
+
+/* Recommendation winner */
+.dark .winner {
+  background: #176447;
+  color: white;
+}
+
+/* Secondary text */
+.dark .headernote,
+.dark .restaurant,
+.dark .stats,
+.dark .fine {
+  color: var(--muted);
+}
+
+/* Keep the brand icon and winner text readable */
+.dark .brandmark {
+  color: var(--lime);
+}
+
+.dark .winner h3,
+.dark .winner .price {
+  color: white;
+}
+
+/* Fix dark text on dark backgrounds */
+.dark .brand,
+.dark .brand:not(.brandmark),
+.dark aside h2,
+.dark aside .control-title,
+.dark aside .budgetinput,
+.dark .card h3,
+.dark .card .price {
+  color: #f1f5f2;
+}
+
+/* Keep form labels readable */
+.dark aside label,
+.dark aside legend,
+.dark aside .section-number {
+  color: #c5d8cb;
+}
+
+/* Make secondary buttons readable */
+.dark .card button {
+  background: #35483e;
+  color: #f1f5f2;
+}
+
+/* Account page white panels */
+.dark .bg-white {
+  background-color: #1e2b24;
+}
+
+/* Account page text */
+.dark .text-\[\#172b25\] {
+  color: #f1f5f2;
+}
+
+.dark .text-\[\#63726c\] {
+  color: #a9b9b0;
+}
+
+/* Account page borders */
+.dark .border-\[\#dfe5df\] {
+  border-color: #35483e;
+}
+
+/* Selected Preferences tab */
+.dark .bg-\[\#edf3e9\] {
+  background-color: #35483e;
+}
+
+/* Hover styling */
+.dark .hover\:bg-\[\#f6f8f5\]:hover {
+  background-color: #35483e;
+}
+
+/* Fix the page background */
+html.dark body {
+  background-color: #121c17;
+  color: #f1f5f2;
+}
+
+/* Make headings readable */
+.dark main h1,
+.dark main h2,
+.dark main h3,
+.dark main label {
+  color: #f1f5f2;
+}
+
+/* Keep the header and navigation readable */
+.dark header .brand,
+.dark header .brand span {
+  color: #f1f5f2;
+}
+
+/* Account settings panels */
+.dark main > div,
+.dark main > section {
+  border-color: #35483e;
+}
+
+/* Profile menu buttons */
+.dark header button {
+  color: #f1f5f2;
+}
+
+/* Restaurant dropdown */
+.dark #restaurants {
+  background-color: #293b30;
+  color: #f1f5f2;
+}
+
+.dark #restaurants label,
+.dark #restaurants span {
+  color: #f1f5f2;
+}
+/* Account menu button backgrounds */
+.dark .bg-\[\#f6f8f5\] {
+  background-color: #293b30;
+}
+
+/* Account menu hover */
+.dark .hover\:bg-\[\#edf3e9\]:hover {
+  background-color: #35483e;
+}
+
+/* Floating recommendation widget - dark mode */
+.dark .rec-widget {
+  background: #1e2b24;
+  border-color: #35483e;
+  color: #f1f5f2;
+}
+
+.dark .rec-name,
+.dark .rec-metric strong {
+  color: #f1f5f2;
+}
+
+.dark .rec-restaurant,
+.dark .rec-metric span,
+.dark .rec-stats {
+  color: #a9b9b0;
+}
+
+.dark .rec-toggle {
+  color: #dfff80;
+}
+
+/* Improve homepage text contrast */
+.dark .intro h1 span,
+.dark .intro .eyebrow {
+  color: #65c99a;
+}
+
+.dark .intro p {
+  color: #c5d8cb;
+}
+
+/* Budget number input - dark mode */
+html.dark .budgetinput input {
+  background-color: #293b30;
+  color: #f1f5f2;
+  border: 1px solid #35483e;
+}
