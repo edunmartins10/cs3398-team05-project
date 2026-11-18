@@ -5,7 +5,7 @@ import AccountPage from './pages/Account';
 import FAQ from './pages/FAQ';
 import NotFound from './pages/NotFound';
 import EmailVerified from './pages/EmailVerified'
-import './darkmode.css';
+import './darkMode.css';
 
 
 export default function App() {
