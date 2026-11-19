@@ -40,8 +40,8 @@ export function convertFrontendMeals(menu) {
         // Bitewise stores prices in cents; our algorithm uses dollars
         price: item.price / 100,
 
-        // Sample menus do not provide meal categories
-        category: null,
+        // preserve categories when the menu provides them
+        category: item.category ??null,
 
        nutrition: {
   calories: item.calories ?? null,
