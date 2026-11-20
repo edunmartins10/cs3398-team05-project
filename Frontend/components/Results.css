@@ -2,5 +2,15 @@
    .order-button:hover{background:var(--green);color:#fff}
    .winner .order-button{border-color:var(--lime);background:var(--lime);color:var(--ink)}
    .winner .order-button:hover{background:#fff;border-color:#fff;color:var(--ink)}
-.map-button{margin:14px 0 0 8px;border:1px solid var(--line);background:#fff;color:var(--green);border-radius:6px;padding:8px 14px;font:600 13px 'DM Sans',sans-serif}
-.map-button:hover{background:#f0f5f1}
+   .winner .favorite-toggle-button{background:var(--lime)}
+   .winner .favorite-toggle-button:hover{background:#fff}
+   .winner-actions{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+   .winner-actions .order-button{margin-top:0}
+   .winner-top-centered{align-items:center}
+   .card-price-actions{display:grid;grid-template-rows:minmax(0,1fr) 36px;justify-items:end;align-self:stretch}
+   .card-price-actions .price{align-self:center}
+   .card-price-actions .favorite-toggle-button{align-self:end}
+   @media (max-width: 900px){.winner-top-centered{align-items:flex-start}}
+   @media (max-width: 600px){.winner-top-centered{align-items:center}}
+   .map-button{margin:14px 0 0 8px;border:1px solid var(--line);background:#fff;color:var(--green);border-radius:6px;padding:8px 14px;font:600 13px 'DM Sans',sans-serif}
+   .map-button:hover{background:#f0f5f1}

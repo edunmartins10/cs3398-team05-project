@@ -1,0 +1,26 @@
+.favorite-toggle-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--green);
+}
+
+.favorite-toggle-button:hover {
+  background: #edf3e9;
+}
+
+.favorite-toggle-button svg {
+  width: 23px;
+  height: 23px;
+}
+
+.favorite-toggle-button:disabled {
+  cursor: wait;
+  opacity: .65;
+}

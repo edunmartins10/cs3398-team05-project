@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import authRouter from './routes/auth.js';
 import ordersRouter from './routes/account/orders.js';
+import savedOrdersRouter from './routes/account/saved-orders.js';
 
 const app = express();
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -17,6 +18,7 @@ app.use(express.json()); // Automatically parses JSON request bodies
 app.use(cookieParser()); // Automatically parses cookies into req.cookies
 
 app.use('/api/auth/orders', ordersRouter);
+app.use('/api/auth/saved-orders', savedOrdersRouter);
 app.use('/api/auth', authRouter);
 app.use('/api', (req, res) => res.status(404).json({ error: 'API route not found.' }));
 
