@@ -12,6 +12,7 @@ import { api, AUTH_CHANGED_EVENT, postJson, putJson } from '../lib/api.js';
 import { distanceMiles, radiusLimit, restaurantLocations } from '../lib/location.js';
 import { toggleSavedOrder } from '../lib/savedOrders.js';
 import Footer from '../components/Footer.jsx';
+import RestaurantMap from '../components/RestaurantMap.jsx';
 const DEFAULTS = { budget: '10', minimum: '400', combos: true };
 
 export default function HomePage() {
@@ -35,6 +36,17 @@ export default function HomePage() {
   const [orderItem, setOrderItem] = useState(null);
   const names = useMemo(() => restaurantNames(menu), [menu]);
   const goalLabel = recommendationGoals.find((option) => option.goal_key === goal)?.winner_label || '';
+  // 
+  const [deviceLocation, setDeviceLocation] = useState(null);
+  const [radiusOverride, setRadiusOverride] = useState(null);
+  const [gpsStatus, setGpsStatus] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [mapName, setMapName] = useState(null);
+  const origin = deviceLocation || (validLocation(profile) ? profile : null);
+  const radius = radiusOverride ?? radiusLimit(profile);
+  const locations = useMemo(() => Object.fromEntries(names.map((name) => [
+    name, menu.find((item) => item.restaurant === name && validLocation(item)) || restaurantLocations[name],
+  ])), [names, menu]);
   const itemCounts = useMemo(() => {
     const counts = {};
     for (const item of menu) counts[item.restaurant] = (counts[item.restaurant] || 0) + 1;
@@ -80,6 +92,7 @@ export default function HomePage() {
         const nextProfile = data.profile || null;
         setProfile(nextProfile);
         setSelectedAllergens(nextProfile?.allergens ?? []);
+        
         if (!nextProfile) {
           setSavedOrders([]);
           setSavedOrdersError('');
@@ -93,6 +106,11 @@ export default function HomePage() {
           setSavedOrdersError(error.message);
         }
       } catch {
+        const saved = nextProfile?.recommendationPreferences;
+        if (saved?.budget != null) setBudget(String(saved.budget));
+        if (saved?.goal) setGoal(saved.goal);
+      })
+      .catch(() => {
         setProfile(null);
         setSavedOrders([]);
         setSelectedAllergens([]);
@@ -268,6 +286,7 @@ export default function HomePage() {
         <Footer />
       </main>
 
+      {mapName && <RestaurantMap name={mapName} location={locations[mapName]} distance={distanceByRestaurant[mapName]} onClose={() => setMapName(null)} />}
       <ImportDialog 
         open={importOpen} 
         onClose={() => setImportOpen(false)} 

@@ -8,6 +8,7 @@ import FavoriteToggle from './FavoriteToggle.jsx';
 import "./Results.css";
 
 function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder, savedOrders, onToggleFavorite }) {
+
   const metric = winnerMetric(order, goal);
   const isFavorite = Boolean(findSavedOrder(savedOrders, order));
 
@@ -62,6 +63,16 @@ function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder, savedO
         </button>
         <FavoriteToggle isFavorite={isFavorite} onToggle={() => onToggleFavorite(order)} />
       </div>
+      <button
+        type="button"
+        className="mt-4 rounded-md border hover:bg-[#13543c] transition duration-300 px-4 py-2"
+        onClick={() => onOrder(order)}
+      >
+        Add to Order
+      </button>
+      <button type="button" className="map-button" onClick={() => onMap(order.restaurant)}>
+        View map
+      </button>
     </article>
   );
 }
@@ -76,6 +87,9 @@ export default function Results({
   onOrder,
   savedOrders = [],
   onToggleFavorite,
+
+  onMap,
+
   allergenRestrictionsActive,
 }) {
   const raw = Number(budgetDollars);
@@ -121,6 +135,7 @@ export default function Results({
             onOrder={onOrder}
             savedOrders={savedOrders}
             onToggleFavorite={onToggleFavorite}
+            onMap={onMap}
           />
         )}
       </div>
@@ -159,6 +174,9 @@ export default function Results({
                   </div>
                   <button type="button" className="order-button" onClick={() => onOrder(x)}>
                     Add to Order
+                  </button>
+                  <button type="button" className="map-button" onClick={() => onMap(x.restaurant)}>
+                    View map
                   </button>
                 </div>
                 <div className="card-price-actions">

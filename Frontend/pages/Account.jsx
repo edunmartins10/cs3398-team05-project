@@ -38,7 +38,7 @@ function DataRow({ label, value }) {
   );
 }
 
-export default function AccountPage() {
+export default function AccountPage({ theme, changeTheme }) {
   const location = useLocation();
   const requestedTab = location.state?.activeTab;
   const [profile, setProfile] = useState(null);
@@ -445,6 +445,16 @@ export default function AccountPage() {
                 {activeTab === 'preferences' && (
                   <div>
                     <h2 className="account-panel-title border-b border-[#dfe5df] py-4 text-lg font-semibold text-[#172b25]">Preferences</h2>
+                      <div className="my-5">
+                        <label htmlFor="appearance" className="mb-2 block font-semibold">
+                            Appearance
+                        </label>
+                        <select id="appearance" value={theme} onChange={(e) => changeTheme(e.target.value)}>
+                            <option value="system">System default</option>
+                            <option value="light">Light mode</option>
+                            <option value="dark">Dark mode</option>
+                        </select>
+                      </div>
                     <form className="account-form account-preferences-form space-y-5 py-4" noValidate onSubmit={savePreferences}>
                       {preferenceFeedback && (
                         <p

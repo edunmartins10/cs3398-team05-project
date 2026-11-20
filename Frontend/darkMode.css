@@ -1,0 +1,520 @@
+.dark {
+  color-scheme: dark;
+  --ink: #f1f5f2;
+  --green: #65c99a;
+  --muted: #a9b9b0;
+  --line: #35483e;
+  --bg: #121c17;
+}
+
+/* Header and navigation */
+.dark header,
+.dark .site-nav,
+.dark aside,
+.dark .card {
+  background: #1e2b24;
+  color: var(--ink);
+}
+
+/* Brand and headings */
+.dark .brand,
+.dark h1,
+.dark h2,
+.dark h3,
+.dark .budgetinput {
+  color: var(--ink);
+}
+
+/* Form controls */
+.dark input,
+.dark select,
+.dark textarea {
+  background: #293b30;
+  color: #f1f5f2;
+  border-color: var(--line);
+}
+
+/* Recommendation winner */
+.dark .winner {
+  background: #176447;
+  color: white;
+}
+
+/* Secondary text */
+.dark .headernote,
+.dark .restaurant,
+.dark .stats,
+.dark .fine {
+  color: var(--muted);
+}
+
+/* Keep the brand icon and winner text readable */
+.dark .brandmark {
+  color: var(--lime);
+}
+
+.dark .winner h3,
+.dark .winner .price {
+  color: white;
+}
+
+/* Fix dark text on dark backgrounds */
+.dark .brand,
+.dark .brand:not(.brandmark),
+.dark aside h2,
+.dark aside .control-title,
+.dark aside .budgetinput,
+.dark .card h3,
+.dark .card .price {
+  color: #f1f5f2;
+}
+
+/* Keep form labels readable */
+.dark aside label,
+.dark aside legend,
+.dark aside .section-number {
+  color: #c5d8cb;
+}
+
+/* Make secondary buttons readable */
+.dark .card button {
+  background: #35483e;
+  color: #f1f5f2;
+}
+
+/* Account page white panels */
+.dark .bg-white {
+  background-color: #1e2b24;
+}
+
+/* Account page text */
+.dark .text-\[\#172b25\] {
+  color: #f1f5f2;
+}
+
+.dark .text-\[\#63726c\] {
+  color: #a9b9b0;
+}
+
+/* Account page borders */
+.dark .border-\[\#dfe5df\] {
+  border-color: #35483e;
+}
+
+/* Selected Preferences tab */
+.dark .bg-\[\#edf3e9\] {
+  background-color: #35483e;
+}
+
+/* Hover styling */
+.dark .hover\:bg-\[\#f6f8f5\]:hover {
+  background-color: #35483e;
+}
+
+/* Fix the page background */
+html.dark body {
+  background-color: #121c17;
+  color: #f1f5f2;
+}
+
+/* Make headings readable */
+.dark main h1,
+.dark main h2,
+.dark main h3,
+.dark main label {
+  color: #f1f5f2;
+}
+
+/* Keep the header and navigation readable */
+.dark header .brand,
+.dark header .brand span {
+  color: #f1f5f2;
+}
+
+/* Account settings panels */
+.dark main > div,
+.dark main > section {
+  border-color: #35483e;
+}
+
+/* Profile menu buttons */
+.dark header button {
+  color: #f1f5f2;
+}
+
+/* Restaurant dropdown */
+.dark #restaurants {
+  background-color: #293b30;
+  color: #f1f5f2;
+}
+
+.dark #restaurants label,
+.dark #restaurants span {
+  color: #f1f5f2;
+}
+/* Account menu button backgrounds */
+.dark .bg-\[\#f6f8f5\] {
+  background-color: #293b30;
+}
+
+/* Account menu hover */
+.dark .hover\:bg-\[\#edf3e9\]:hover {
+  background-color: #35483e;
+}
+
+/* Floating recommendation widget - dark mode */
+.dark .rec-widget {
+  background: #1e2b24;
+  border-color: #35483e;
+  color: #f1f5f2;
+}
+
+.dark .rec-name,
+.dark .rec-metric strong {
+  color: #f1f5f2;
+}
+
+.dark .rec-restaurant,
+.dark .rec-metric span,
+.dark .rec-stats {
+  color: #a9b9b0;
+}
+
+.dark .rec-toggle {
+  color: #dfff80;
+}
+
+/* Improve homepage text contrast */
+.dark .intro h1 span,
+.dark .intro .eyebrow {
+  color: #65c99a;
+}
+
+.dark .intro p {
+  color: #c5d8cb;
+}
+
+/* Budget number input - dark mode */
+html.dark .budgetinput input {
+  background-color: #293b30;
+  color: #f1f5f2;
+  border: 1px solid #35483e;
+}
+
+/* Account panels - dark mode */
+html.dark .account-panel {
+  background-color: #1e2b24;
+  color: #f1f5f2;
+  border-color: #35483e;
+}
+
+html.dark .account-panel-title {
+  color: #f1f5f2;
+  border-color: #35483e;
+}
+
+/* Account sidebar - dark mode */
+html.dark .account-tabs {
+  background-color: #1e2b24;
+  border-color: #35483e;
+}
+
+/* Sidebar navigation text */
+html.dark .account-tab {
+  color: #a9b9b0;
+}
+
+/* Selected sidebar tab */
+html.dark .account-tab[aria-current="page"] {
+  background-color: #35483e;
+  color: #65c99a;
+}
+
+/* Sidebar hover */
+html.dark .account-tab:hover {
+  background-color: #35483e;
+  color: #f1f5f2;
+}
+
+/* Account dropdown text */
+html.dark .account-page select,
+html.dark .account-page input:not([type="checkbox"]) {
+  background-color: #293b30;
+  color: #f1f5f2;
+  border-color: #a9b9b0;
+}
+
+html.dark .account-page select option {
+  background-color: #293b30;
+  color: #f1f5f2;
+}
+
+/* FAQ page - dark mode */
+html.dark .faq-item summary {
+  color: #f1f5f2;
+}
+
+html.dark .faq-item > p,
+html.dark .info-lede {
+  color: #a9b9b0;
+}
+
+html.dark .faq-toggle {
+  color: #65c99a;
+}
+
+html.dark .faq-item,
+html.dark .info-heading {
+  border-color: #35483e;
+}
+
+/* Recommendation cards - dark mode */
+html.dark .card {
+  background-color: #1e2b24;
+  border-color: #a9b9b0;
+}
+
+html.dark .card h3,
+html.dark .card .price {
+  color: #f1f5f2;
+}
+
+html.dark .card .restaurant,
+html.dark .card .stats {
+  color: #a9b9b0;
+}
+
+html.dark .card .stats .ratio {
+  color: #65c99a;
+}
+
+/* Restaurant selector - dark mode */
+html.dark select#restaurants,
+html.dark #restaurants select {
+  background-color: #293b30;
+  color: #f1f5f2;
+  border-color: #a9b9b0;
+}
+
+html.dark #restaurants option,
+html.dark #restaurants select option {
+  background-color: #293b30;
+  color: #f1f5f2;
+}
+
+/* Authentication dialog - dark mode */
+html.dark .account-dialog {
+  background-color: #1e2b24;
+  color: #f1f5f2;
+  border-color: #35483e;
+}
+
+html.dark .account-dialog h2,
+html.dark .account-dialog label,
+html.dark .account-dialog .dialoghead {
+  color: #f1f5f2;
+}
+
+html.dark .account-dialog p,
+html.dark .account-dialog .fine,
+html.dark .account-dialog .optional {
+  color: #a9b9b0;
+}
+
+/* Authentication inputs */
+html.dark .account-dialog input:not([type="checkbox"]) {
+  background-color: #293b30;
+  color: #f1f5f2;
+  border-color: #35483e;
+}
+
+html.dark .account-dialog input::placeholder {
+  color: #a9b9b0;
+}
+
+/* Login / Create account tabs */
+html.dark .account-dialog .auth-tabs {
+  background-color: #293b30;
+  border-color: #35483e;
+}
+
+html.dark .account-dialog .auth-tabs button {
+  color: #a9b9b0;
+}
+
+html.dark .account-dialog .auth-tabs button.selected {
+  background-color: #176447;
+  color: #ffffff;
+}
+
+/* Close button and password visibility icons */
+html.dark .account-dialog .close,
+html.dark .account-dialog button[aria-label="Show password"],
+html.dark .account-dialog button[aria-label="Hide password"] {
+  color: #f1f5f2;
+}
+
+/* Authentication feedback */
+html.dark .account-dialog .form-error {
+  background-color: #452723;
+  color: #ffb8ae;
+  border-color: #9b4b43;
+}
+
+html.dark .account-dialog .form-error p,
+html.dark .account-dialog .form-error li {
+  color: #ffb8ae;
+}
+
+html.dark .account-dialog .form-message {
+  background-color: #203e30;
+  color: #b5f0cb;
+  border-color: #426d52;
+}
+
+/* Auth dialog close button */
+html.dark .account-dialog .close {
+  background-color: #35483e;
+  color: #f1f5f2;
+  border: 1px solid #506b5a;
+}
+
+html.dark .account-dialog .close:hover {
+  background-color: #466151;
+}
+
+/* Signup validation messages */
+html.dark .account-dialog .text-\[\#28573a\] {
+  color: #81d6a3;
+}
+
+html.dark .account-dialog .text-\[\#9b3b32\] {
+  color: #ff9b91;
+}
+
+html.dark .account-dialog .text-\[\#63726c\] {
+  color: #a9b9b0;
+}
+
+/* Donate button - dark mode */
+html.dark .donate-nav {
+  color: #f1f5f2;
+}
+
+html.dark .donate-nav:hover {
+  color: #dfff80;
+  background-color: #293b30;
+}
+
+html.dark .donate-nav:focus-visible {
+  color: #dfff80;
+}
+
+/* Notifications - dark mode */
+html.dark .notice {
+  background-color: #1e2b24;
+  color: #f1f5f2;
+  border: 1px solid #35483e;
+}
+
+/* Error notifications */
+html.dark .notice.notice-error {
+  background-color: #452723;
+  color: #ffb8ae;
+  border-color: #9b4b43;
+}
+
+/* Notification dismiss button */
+html.dark .notice button {
+  color: #f1f5f2;
+  background-color: transparent;
+}
+
+html.dark .notice button:hover {
+  color: #dfff80;
+  background-color: #35483e;
+}
+
+/* Home account banner - dark mode */
+html.dark .account-prompt {
+  background-color: #1e2b24;
+  color: #f1f5f2;
+  border-color: #35483e;
+}
+
+html.dark .account-prompt strong {
+  color: #f1f5f2;
+}
+
+html.dark .account-prompt span {
+  color: #a9b9b0;
+}
+
+html.dark .account-prompt button {
+  background-color: #176447;
+  color: #ffffff;
+  border-color: #35483e;
+}
+
+/* Softer borders for Home page */
+html.dark .workspace aside,
+html.dark .results .card,
+html.dark .results .empty {
+  border-color: #35483e;
+}
+
+html.dark .workspace select,
+html.dark .workspace fieldset,
+html.dark .workspace .restaurant-dropdown,
+html.dark .workspace .restaurant-dropdown summary {
+  border-color: #506b5a;
+}
+
+/* Restaurant dropdown - dark mode */
+html.dark .restaurant-dropdown {
+  background-color: #293b30;
+  color: #f1f5f2;
+}
+
+html.dark .restaurant-dropdown summary {
+  background-color: #293b30;
+  color: #f1f5f2;
+}
+
+html.dark .restaurant-dropdown[open] #restaurants {
+  background-color: #293b30;
+  color: #f1f5f2;
+}
+
+/* Order History dialog - dark mode */
+html.dark .order-dialog {
+  background-color: #1e2b24;
+  color: #f1f5f2;
+  border: 1px solid #35483e;
+}
+
+html.dark .order-dialog h2,
+html.dark .order-dialog p,
+html.dark .order-dialog strong {
+  color: #f1f5f2;
+}
+
+html.dark .order-dialog .close {
+  background-color: #35483e;
+  color: #f1f5f2;
+  border-color: #506b5a;
+}
+
+html.dark .order-dialog .close:hover {
+  background-color: #466151;
+}
+
+html.dark .order-dialog .form-error {
+  background-color: #452723;
+  color: #ffb8ae;
+  border-color: #9b4b43;
+}
+
+html.dark .order-dialog .text-button {
+  color: #a9b9b0;
+}
