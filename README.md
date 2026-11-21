@@ -1,7 +1,9 @@
 # cs3398-team05-project
 
 ## Documentation
-- [Intro and Running Project Locally](docs/intro.md)
+- [Intro and Running Project Locally](Docs/intro.md)
+- [Frontend Guide](Docs/frontend.md)
+- [Backend Guide](Docs/backend.md)
 
 ## Running Project
 To run project, fist make sure you have npm installed.

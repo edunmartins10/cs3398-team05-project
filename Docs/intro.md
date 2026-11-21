@@ -2,6 +2,12 @@
 
 Find restaurant orders that fit your budget. Compare meal value and analyze your own menu prices.
 
+## Documentation
+
+- [Frontend Guide](frontend.md)
+- [Backend Guide](backend.md)
+- [Backend Supabase setup notes](../Backend/README.md)
+
 This is a Vite + React version of published Bitewise v1.
 
 ## Run
