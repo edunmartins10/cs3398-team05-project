@@ -1,4 +1,5 @@
 import { calculateDietaryScore } from './dietaryScore.js';
+import {getMealRole} from './mealRoles.js';
 
 export const money = (cents) => '$' + (cents / 100).toFixed(2);
 
@@ -8,16 +9,15 @@ export function restaurantNames(menu) {
 
 export function orders(items, budget, min, combos) {
   const all = [];
-  const add = (a, b) => {
-    const price = a.price + (b?.price || 0);
-    const calories = a.calories + (b?.calories || 0);
-    const protein = a.protein + (b?.protein || 0);
+  const add = (mealItems) => {
+    const price = mealItems.reduce((sum, item) => sum + item.price, 0);
+    const calories = mealItems.reduce((sum, item) => sum + item.calories, 0);
+    const protein = mealItems.reduce((sum, item) => sum + item.protein, 0);
     const combineNutrient = (field) => {
-  if (a[field] == null || (b && b[field] == null)) {
+  if (mealItems.some((item) => item[field] == null)) {
     return null;
   }
-
-  return a[field] + (b ? b[field] : 0);
+  return mealItems.reduce((sum, item) => sum + item[field], 0);
 };
 
 const carbs = combineNutrient('carbs');
@@ -26,9 +26,9 @@ const fiber = combineNutrient('fiber');
 const sodium = combineNutrient('sodium');
     if (price <= budget && calories >= min) {
       all.push({
-        restaurant: a.restaurant,
-        name: b ? (a.id === b.id ? '2 × ' + a.name : a.name + ' + ' + b.name) : a.name,
-        items: [a, ...(b ? [b] : [])].map((item) => ({
+        restaurant: mealItems[0].restaurant,
+        name: mealItems.map((item) => item.name).join(' + '),
+        items: mealItems.map((item) => ({
           name: item.name,
           price: item.price,
           calories: item.calories,
@@ -41,21 +41,132 @@ const sodium = combineNutrient('sodium');
         fat,
         fiber,
         sodium,
-        source: a.source,
+        source: mealItems[0].source,
         budgetUtilization: budget > 0 ? price / budget : 0,
         cpd: calories / (price / 100),
         ppd: protein / (price / 100),
       });
     }
   };
-  items.forEach((a, i) => {
-    add(a);
-    if (combos) {
-      items.slice(i).forEach((b) => {
-        if (a.restaurant === b.restaurant) add(a, b);
-      });
+
+  const restaurants = new Map();
+  items.forEach((item) => {
+    if (!restaurants.has(item.restaurant)) {
+      restaurants.set(item.restaurant, []);
+    }
+    restaurants.get(item.restaurant).push(item);
+  });
+
+  for (const restaurantItems of restaurants.values()) {
+  const mains = [];
+  const sides = [];
+  const drinks = [];
+  const addons = [];
+
+  restaurantItems.forEach((item) => {
+    const role = getMealRole(item);
+
+    if (role === 'main') {
+      mains.push(item);
+    } else if (role === 'side') {
+      sides.push(item);
+    } else if (role === 'drink') {
+      drinks.push(item);
+    } else if (role === 'addon') {
+      addons.push(item);
     }
   });
+
+  for(const main of mains) {
+    if(main.price <= 0 || main.price > budget) {
+      continue;
+    }
+
+    add([main]);
+    if(combos){
+
+      // Main + side
+for (const side of sides) {
+  if (side.price <= 0 || main.price + side.price > budget) {
+    continue;
+  }
+
+  add([main, side]);
+
+  // Main + side + drink
+  for (const drink of drinks) {
+    const totalPrice = main.price + side.price + drink.price;
+
+    if (drink.price > 0 && totalPrice <= budget) {
+      add([main, side, drink]);
+    }
+  }
+}
+
+// Main + drink (when a side isn't selected)
+for (const drink of drinks) {
+  if (drink.price > 0 && main.price + drink.price <= budget) {
+    add([main, drink]);
+  }
+}
+
+// Prioritized duplicate: second main item
+if (main.price * 2 <= budget) {
+  add([main, main]);
+
+  for (const side of sides) {
+    const totalPrice = main.price * 2 + side.price;
+
+    if (side.price <= 0 || totalPrice > budget) {
+      continue;
+    }
+
+    add([main, main, side]);
+
+    for (const drink of drinks) {
+      if (drink.price > 0 && totalPrice + drink.price <= budget) {
+        add([main, main, side, drink]);
+      }
+    }
+  }
+
+  for (const drink of drinks) {
+    if (drink.price > 0 && main.price * 2 + drink.price <= budget) {
+      add([main, main, drink]);
+    }
+  }
+}
+
+    }
+  }
+}
+
+
+if (combos) {
+  const existingMeals = [...all];
+
+  for (const meal of existingMeals) {
+    const restaurantItems = restaurants.get(meal.restaurant) || [];
+
+    const addons = restaurantItems.filter(
+      (item) => getMealRole(item) === 'addon'
+    );
+
+    for (const addon of addons) {
+      if (addon.price > 0 && meal.price + addon.price <= budget) {
+        const originalItems = meal.items.map((entry) =>
+          restaurantItems.find((item) => item.name === entry.name)
+        );
+
+        if (originalItems.every(Boolean)) {
+          add([...originalItems, addon]);
+        }
+      }
+    }
+  }
+}
+
+
   return all;
 }
 
