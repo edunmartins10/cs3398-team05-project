@@ -9,7 +9,7 @@ import RecWidget from '../components/RecWidget.jsx';
 import { createSampleMenu } from '../data/sampleMenu.js';
 import { parseMenu, rankedOrders, restaurantNames } from '../lib/value.js';
 import { api, AUTH_CHANGED_EVENT, postJson, putJson } from '../lib/api.js';
-import { distanceMiles, radiusLimit, restaurantLocations } from '../lib/location.js';
+import { distanceMiles, radiusLimit, restaurantLocations, validLocation } from '../lib/location.js';
 import { toggleSavedOrder } from '../lib/savedOrders.js';
 import Footer from '../components/Footer.jsx';
 import RestaurantMap from '../components/RestaurantMap.jsx';
@@ -33,10 +33,11 @@ export default function HomePage() {
   const [preferenceOptionsError, setPreferenceOptionsError] = useState('');
   const [notice, setNotice] = useState('');
   const [noticeError, setNoticeError] = useState(false);
+  const [onOrder, setOnOrder] = useState(false);
   const [orderItem, setOrderItem] = useState(null);
   const names = useMemo(() => restaurantNames(menu), [menu]);
   const goalLabel = recommendationGoals.find((option) => option.goal_key === goal)?.winner_label || '';
-  // 
+  //
   const [deviceLocation, setDeviceLocation] = useState(null);
   const [radiusOverride, setRadiusOverride] = useState(null);
   const [gpsStatus, setGpsStatus] = useState('');
@@ -87,7 +88,7 @@ export default function HomePage() {
       });
 
     async function loadProfile() {
-      try {
+      /*try {
         const data = await api('/api/auth/me');
         const nextProfile = data.profile || null;
         setProfile(nextProfile);
@@ -114,7 +115,7 @@ export default function HomePage() {
         setProfile(null);
         setSavedOrders([]);
         setSelectedAllergens([]);
-      }
+      }*/
     }
     loadProfile();
     window.addEventListener(AUTH_CHANGED_EVENT, loadProfile);
@@ -277,6 +278,7 @@ export default function HomePage() {
             budgetDollars={budget}
             distances={distanceByRestaurant}
             profile={profile}
+	    onMap={setMapName}
             onOrder={setOrderItem}
             savedOrders={savedOrders}
             onToggleFavorite={toggleFavoriteOrder}

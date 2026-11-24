@@ -7,7 +7,7 @@ import { findSavedOrder } from "../lib/savedOrders.js";
 import FavoriteToggle from './FavoriteToggle.jsx';
 import "./Results.css";
 
-function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder, savedOrders, onToggleFavorite }) {
+function Winner({ order, goal, goalLabel, budgetCents, distance, onOrder, savedOrders, onToggleFavorite, onMap }) {
 
   const metric = winnerMetric(order, goal);
   const isFavorite = Boolean(findSavedOrder(savedOrders, order));
